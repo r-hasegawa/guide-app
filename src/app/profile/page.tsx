@@ -1,74 +1,45 @@
+// src/app/profile/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { getUserProfile } from "@/firebase/firestore";
 
-export default function ProfilePage() {
-  // 仮の初期プロフィール情報
-  const [profile, setProfile] = useState({
-    name: "",
-    language: "",
-    introduction: "",
-  });
+export default function ProfileRouter() {
+  const { user } = useAuthContext();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
-  // 変更ハンドラ
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setProfile({
-      ...profile,
-      [e.target.name]: e.target.value,
-    });
-  };
+  useEffect(() => {
+    // ログインしていない → /login にリダイレクト
+    if (!user) {
+      router.push("/login");
+      return;
+    }
 
-  // 保存ボタン押下（仮）
-  const handleSave = () => {
-    alert("プロフィールを保存しました（まだ実装されていません）");
-  };
+    const checkProfile = async () => {
+      try {
+        const profile = await getUserProfile(user.uid);
+        if (profile) {
+          // プロフィールが存在 → /profile/view に遷移
+          router.push("/profile/view");
+        } else {
+          // プロフィール未登録 → /profile/edit に遷移
+          router.push("/profile/edit");
+        }
+      } catch (error) {
+        console.error("プロフィール確認中にエラー:", error);
+        // 必要ならエラーページに遷移など
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  return (
-    <main className="max-w-xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">プロフィール編集</h1>
+    checkProfile();
+  }, [user]);
 
-      <label className="block mb-4">
-        <span className="block font-semibold mb-1">名前</span>
-        <input
-          type="text"
-          name="name"
-          value={profile.name}
-          onChange={handleChange}
-          className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="例: 山田 太郎"
-        />
-      </label>
-
-      <label className="block mb-4">
-        <span className="block font-semibold mb-1">話せる言語</span>
-        <input
-          type="text"
-          name="language"
-          value={profile.language}
-          onChange={handleChange}
-          className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="例: 日本語, 英語"
-        />
-      </label>
-
-      <label className="block mb-6">
-        <span className="block font-semibold mb-1">自己紹介</span>
-        <textarea
-          name="introduction"
-          value={profile.introduction}
-          onChange={handleChange}
-          rows={4}
-          className="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="自己紹介を入力してください"
-        />
-      </label>
-
-      <button
-        onClick={handleSave}
-        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
-      >
-        保存する
-      </button>
-    </main>
-  );
+  return loading ? (
+    <div className="text-center py-10">読み込み中...</div>
+  ) : null;
 }

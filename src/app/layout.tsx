@@ -1,10 +1,17 @@
+// app/layout.tsx
 import "./globals.css";
-import { ReactNode } from "react";
+import { AuthProvider } from "@/contexts/AuthContext";
+import Header from "@/components/Header";
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          <Header />
+          <main>{children}</main>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

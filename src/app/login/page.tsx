@@ -1,47 +1,59 @@
+// src/app/login/page.tsx
 "use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/firebase/firebaseConfig";
 
 export default function LoginPage() {
+  const { user, loading } = useAuthContext();
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/profile/view");
+    }
+  }, [user, loading, router]);
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: Firebase Authentication などと連携してログイン処理を実装
-    alert(`Email: ${email}\nPassword: ${password}`);
+    setError("");
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push("/profile/view");
+    } catch (err: any) {
+      setError("ログインに失敗しました。メールアドレスまたはパスワードを確認してください。");
+    }
   };
 
-  return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-8 rounded shadow-md w-full max-w-sm"
-      >
-        <h1 className="text-2xl font-bold mb-6 text-center">ログイン</h1>
+  if (loading) return <div>読み込み中...</div>;
 
-        <label className="block mb-2 font-semibold">メールアドレス</label>
+  return (
+    <div className="max-w-md mx-auto mt-10 p-6 shadow rounded bg-white">
+      <h2 className="text-xl font-bold mb-4">ログイン</h2>
+      <form onSubmit={handleLogin} className="space-y-4">
         <input
           type="email"
+          placeholder="メールアドレス"
+          className="w-full border p-2 rounded"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded mb-4"
-          required
         />
-
-        <label className="block mb-2 font-semibold">パスワード</label>
         <input
           type="password"
+          placeholder="パスワード"
+          className="w-full border p-2 rounded"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded mb-6"
-          required
         />
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-        >
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+        <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
           ログイン
         </button>
       </form>

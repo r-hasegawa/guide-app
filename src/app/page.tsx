@@ -1,7 +1,21 @@
 // src/app/page.tsx
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthContext } from "@/contexts/AuthContext";
 import Link from "next/link";
 
 export default function HomePage() {
+  const { user, loading } = useAuthContext();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/profile/view");
+    }
+  }, [user, loading, router]);
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-white text-gray-800 px-4">
       <header className="w-full max-w-4xl py-6 text-center">
@@ -11,13 +25,13 @@ export default function HomePage() {
 
       <section className="mt-10 flex flex-col gap-4 w-full max-w-md">
         <Link
-          href="/register?role=student"
+          href="/signup?role=student"
           className="bg-blue-600 text-white py-3 rounded-lg text-center hover:bg-blue-700 transition"
         >
           学生として登録
         </Link>
         <Link
-          href="/register?role=guest"
+          href="/signup?role=guest"
           className="bg-green-600 text-white py-3 rounded-lg text-center hover:bg-green-700 transition"
         >
           観光客として登録

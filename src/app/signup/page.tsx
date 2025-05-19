@@ -1,13 +1,23 @@
-// src/app/register/page.tsx
+// src/app/signup/page.tsx
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/firebase/firebaseConfig';
 
-export default function RegisterPage() {
+export default function SignupPage() {
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/profile/view");
+    }
+  }, [user, loading, router]);
+
   const searchParams = useSearchParams();
   const role = searchParams.get('role');
+  const router = useRouter();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -15,15 +25,22 @@ export default function RegisterPage() {
     password: '',
   });
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 登録処理
-    alert(`${role === 'student' ? '学生' : '観光客'}として登録しました！`);
+    try {
+      await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      alert(`${role === 'student' ? '学生' : '観光客'}として登録しました！`);
+      router.push('/profile');
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -53,12 +70,13 @@ export default function RegisterPage() {
         <input
           type="password"
           name="password"
-          placeholder="パスワード"
+          placeholder="パスワード（6文字以上）"
           value={formData.password}
           onChange={handleChange}
           className="border rounded px-4 py-2"
           required
         />
+        {error && <p className="text-red-500 text-sm">{error}</p>}
         <button
           type="submit"
           className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
