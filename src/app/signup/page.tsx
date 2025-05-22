@@ -47,10 +47,11 @@ export default function SignupPage() {
   };
 
   const saveUserBasicInfo = async (firebaseUser: any) => {
-    // ユーザーの基本情報を保存（ロールは含めない）
+    // ユーザーの基本情報を保存（ロールは含める）
     const userProfile = {
       email: firebaseUser.email || '',
       createdAt: new Date().toISOString(),
+      role: role,
       profileCompleted: false, // 詳細プロフィールは未完了
     };
     

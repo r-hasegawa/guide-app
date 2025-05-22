@@ -3,14 +3,17 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { 
-  saveGuideProfile, 
-  saveGuestProfile, 
-  getGuideProfile, 
+import {
+  saveGuideProfile,
+  saveGuestProfile,
+  getGuideProfile,
   getGuestProfile,
-  GuideProfile, 
-  GuestProfile 
+  GuideProfile,
+  GuestProfile
 } from "@/firebase/firestore";
+
+const LANGUAGE_OPTIONS = ["英語", "中国語", "フランス語", "ドイツ語", "スペイン語"];
+const AREA_OPTIONS = ["東京", "大阪", "京都", "奈良", "福岡"]; // Added AREA_OPTIONS for guide
 
 export default function ProfileEditPage() {
   const { user, userInfo, loading, refreshUserInfo } = useAuthContext();
@@ -23,47 +26,36 @@ export default function ProfileEditPage() {
   const [guideProfile, setGuideProfile] = useState<GuideProfile>({
     name: "",
     languages: [],
+    areas: [], // Added areas to match onboarding
     introduction: "",
-    availability: "",
-    hourlyRate: undefined,
-    certifications: []
+    availability: "", // These fields are not in the onboarding but can be edited here
+    hourlyRate: undefined, // These fields are not in the onboarding but can be edited here
+    certifications: [] // These fields are not in the onboarding but can be edited here
   });
 
   // 観光客用フォームデータ
   const [guestProfile, setGuestProfile] = useState<GuestProfile>({
     name: "",
-    nativeLanguage: "",
-    learningLanguages: [],
-    visitPurpose: "",
-    interests: [],
-    travelDates: {
-      startDate: "",
-      endDate: ""
-    },
-    budget: ""
+    languages: [], // Changed from nativeLanguage/learningLanguages to match onboarding's "languages"
+    introduction: "" // Added introduction to match onboarding
+    // Removed nativeLanguage, learningLanguages, visitPurpose, interests, travelDates, budget to align with onboarding
   });
 
-  // 一時入力用
-  const [tempInputs, setTempInputs] = useState({
-    language: "",
-    specialty: "",
-    interest: "",
-    learningLanguage: "",
-    certification: ""
-  });
-
+  // useEffect for initial redirection if not logged in or role not set
   useEffect(() => {
     if (!loading && !user) {
       router.replace("/login");
       return;
     }
 
+    // If userInfo is loaded but role is not set, redirect to onboarding
     if (!loading && user && userInfo && !userInfo.role) {
-      router.replace("/profile/onboarding");
+      router.replace("/profile/onboarding"); // Assuming this path exists
       return;
     }
   }, [user, userInfo, loading, router]);
 
+  // useEffect to fetch existing profile data
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user || !userInfo) return;
@@ -71,10 +63,32 @@ export default function ProfileEditPage() {
       try {
         if (userInfo.role === 'guide') {
           const existing = await getGuideProfile(user.uid);
-          if (existing) setGuideProfile(existing);
-        } else {
+          // Only set fields that exist in the current GuideProfile state
+          if (existing) {
+            setGuideProfile(prev => ({
+              ...prev,
+              name: existing.name || "",
+              languages: existing.languages || [],
+              areas: existing.areas || [], // Load existing areas
+              introduction: existing.introduction || "",
+              availability: existing.availability || "",
+              hourlyRate: existing.hourlyRate || undefined,
+              certifications: existing.certifications || []
+            }));
+          }
+        } else { // userInfo.role === 'guest'
           const existing = await getGuestProfile(user.uid);
-          if (existing) setGuestProfile(existing);
+          // Only set fields that exist in the current GuestProfile state
+          if (existing) {
+            setGuestProfile(prev => ({
+              ...prev,
+              name: existing.name || "",
+              // Assume existing.languages maps directly to the new "languages" field
+              // This might require a migration or careful handling if old data uses nativeLanguage/learningLanguages
+              languages: (existing as any).languages || [], // Use 'languages' from the onboarding
+              introduction: (existing as any).introduction || "" // Use 'introduction' from onboarding
+            }));
+          }
         }
       } catch (error) {
         console.error("プロフィール取得エラー:", error);
@@ -94,74 +108,44 @@ export default function ProfileEditPage() {
     setGuestProfile(prev => ({ ...prev, [field]: value }));
   };
 
-  const addToArray = (profileType: 'guide' | 'guest', field: string, tempField: string) => {
-    const value = tempInputs[tempField as keyof typeof tempInputs];
-    if (!value.trim()) return;
-
-    if (profileType === 'guide') {
-      setGuideProfile(prev => ({
-        ...prev,
-        [field]: [...(prev[field as keyof GuideProfile] as string[]), value.trim()]
-      }));
+  // Helper for toggling selections (used for languages/areas)
+  const toggleSelection = (value: string, list: string[], setter: (val: string[]) => void) => {
+    if (list.includes(value)) {
+      setter(list.filter(item => item !== value));
     } else {
-      setGuestProfile(prev => ({
-        ...prev,
-        [field]: [...(prev[field as keyof GuestProfile] as string[]), value.trim()]
-      }));
-    }
-
-    setTempInputs(prev => ({ ...prev, [tempField]: "" }));
-  };
-
-  const removeFromArray = (profileType: 'guide' | 'guest', field: string, index: number) => {
-    if (profileType === 'guide') {
-      setGuideProfile(prev => ({
-        ...prev,
-        [field]: (prev[field as keyof GuideProfile] as string[]).filter((_, i) => i !== index)
-      }));
-    } else {
-      setGuestProfile(prev => ({
-        ...prev,
-        [field]: (prev[field as keyof GuestProfile] as string[]).filter((_, i) => i !== index)
-      }));
+      setter([...list, value]);
     }
   };
 
   const validateForm = () => {
+    setError(""); // Clear previous errors
     if (userInfo?.role === 'guide') {
       if (!guideProfile.name.trim()) {
         setError("名前を入力してください。");
         return false;
       }
       if (guideProfile.languages.length === 0) {
-        setError("話せる言語を少なくとも1つ入力してください。");
+        setError("話せる言語を少なくとも1つ選択してください。"); // Changed message slightly
+        return false;
+      }
+      if (guideProfile.areas.length === 0) { // Added validation for areas
+        setError("対応エリアを少なくとも1つ選択してください。");
         return false;
       }
       if (!guideProfile.introduction.trim()) {
         setError("自己紹介を入力してください。");
         return false;
       }
-    } else {
+    } else { // userInfo.role === 'guest'
       if (!guestProfile.name.trim()) {
         setError("名前を入力してください。");
         return false;
       }
-      if (!guestProfile.nativeLanguage.trim()) {
-        setError("母国語を入力してください。");
+      if (guestProfile.languages.length === 0) { // Validating the new 'languages' field
+        setError("話せる言語を少なくとも1つ選択してください。");
         return false;
       }
-      if (!guestProfile.visitPurpose.trim()) {
-        setError("訪問目的を選択してください。");
-        return false;
-      }
-      if (guestProfile.interests.length === 0) {
-        setError("興味のある分野を少なくとも1つ入力してください。");
-        return false;
-      }
-      if (!guestProfile.travelDates.startDate || !guestProfile.travelDates.endDate) {
-        setError("旅行期間を入力してください。");
-        return false;
-      }
+      // Introduction is optional for guests based on onboarding, no validation here
     }
     return true;
   };
@@ -170,7 +154,7 @@ export default function ProfileEditPage() {
     if (!user || !userInfo) return;
 
     setError("");
-    
+
     if (!validateForm()) {
       return;
     }
@@ -183,11 +167,11 @@ export default function ProfileEditPage() {
       } else {
         await saveGuestProfile(user.uid, guestProfile);
       }
-      
+
       // AuthContextの情報を更新
       await refreshUserInfo();
-      
-      router.push("/mypage/profile/view");
+
+      router.push("/mypage/profile/view"); // Redirect to view page after save
     } catch (err) {
       console.error("保存エラー:", err);
       setError("プロフィールの保存に失敗しました。もう一度お試しください。");
@@ -217,7 +201,7 @@ export default function ProfileEditPage() {
           <input
             type="text"
             value={isGuide ? guideProfile.name : guestProfile.name}
-            onChange={(e) => isGuide 
+            onChange={(e) => isGuide
               ? handleGuideInputChange('name', e.target.value)
               : handleGuestInputChange('name', e.target.value)
             }
@@ -231,36 +215,36 @@ export default function ProfileEditPage() {
             {/* ガイド用フィールド */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                言語 <span className="text-red-500">*</span>
+                対応言語 <span className="text-red-500">*</span>
               </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={tempInputs.language}
-                  onChange={(e) => setTempInputs(prev => ({ ...prev, language: e.target.value }))}
-                  className="flex-1 border rounded px-3 py-2"
-                  placeholder="例: 日本語"
-                />
-                <button
-                  type="button"
-                  onClick={() => addToArray('guide', 'languages', 'language')}
-                  className="bg-blue-500 text-white px-4 py-2 rounded"
-                >
-                  追加
-                </button>
-              </div>
               <div className="flex flex-wrap gap-2">
-                {guideProfile.languages.map((lang, index) => (
-                  <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
+                {LANGUAGE_OPTIONS.map((lang) => (
+                  <button
+                    type="button"
+                    key={lang}
+                    className={`px-3 py-1 rounded border ${guideProfile.languages.includes(lang) ? "bg-blue-500 text-white" : "bg-white"}`}
+                    onClick={() => toggleSelection(lang, guideProfile.languages, langs => handleGuideInputChange('languages', langs))}
+                  >
                     {lang}
-                    <button
-                      type="button"
-                      onClick={() => removeFromArray('guide', 'languages', index)}
-                      className="ml-2 text-red-500"
-                    >
-                      ×
-                    </button>
-                  </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                対応エリア <span className="text-red-500">*</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {AREA_OPTIONS.map(area => (
+                  <button
+                    key={area}
+                    type="button"
+                    className={`px-3 py-1 rounded border ${guideProfile.areas.includes(area) ? "bg-green-500 text-white" : "bg-white"}`}
+                    onClick={() => toggleSelection(area, guideProfile.areas, areas => handleGuideInputChange('areas', areas))}
+                  >
+                    {area}
+                  </button>
                 ))}
               </div>
             </div>
@@ -277,22 +261,75 @@ export default function ProfileEditPage() {
                 placeholder="あなたのガイド経験や特徴を教えてください"
               />
             </div>
+
+            {/* Additional guide fields not present in onboarding, but editable here */}
+            <div>
+              <label className="block text-sm font-medium mb-2">対応可能時間</label>
+              <input
+                type="text"
+                value={guideProfile.availability}
+                onChange={(e) => handleGuideInputChange('availability', e.target.value)}
+                className="w-full border rounded px-3 py-2"
+                placeholder="例: 平日午前中、週末終日"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">希望時給</label>
+              <input
+                type="number"
+                value={guideProfile.hourlyRate || ''}
+                onChange={(e) => handleGuideInputChange('hourlyRate', e.target.value ? Number(e.target.value) : undefined)}
+                className="w-full border rounded px-3 py-2"
+                placeholder="例: 2000"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">資格・認定 (カンマ区切り)</label>
+              <input
+                type="text"
+                value={guideProfile.certifications.join(', ')}
+                onChange={(e) => handleGuideInputChange('certifications', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                className="w-full border rounded px-3 py-2"
+                placeholder="例: 英語検定1級, 旅程管理主任者"
+              />
+            </div>
           </>
         ) : (
           <>
             {/* 観光客用フィールド */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                言語 <span className="text-red-500">*</span>
+                話せる言語 <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={guestProfile.nativeLanguage}
-                onChange={(e) => handleGuestInputChange('nativeLanguage', e.target.value)}
+              <div className="flex flex-wrap gap-2">
+                {LANGUAGE_OPTIONS.map(lang => (
+                  <button
+                    key={lang}
+                    type="button"
+                    className={`px-3 py-1 rounded border ${guestProfile.languages.includes(lang) ? "bg-blue-500 text-white" : "bg-white"}`}
+                    onClick={() => toggleSelection(lang, guestProfile.languages, langs => handleGuestInputChange('languages', langs))}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                自己紹介 (任意)
+              </label>
+              <textarea
+                value={guestProfile.introduction}
+                onChange={(e) => handleGuestInputChange('introduction', e.target.value)}
+                rows={4}
                 className="w-full border rounded px-3 py-2"
-                placeholder="例: 英語"
+                placeholder="あなたの興味や日本での過ごし方について教えてください"
               />
             </div>
+            {/* Removed other guest fields (nativeLanguage, learningLanguages, visitPurpose, interests, travelDates, budget)
+                to align with the simpler onboarding inputs. If these are needed, they should be added
+                to the onboarding page or handled via a more comprehensive form. */}
           </>
         )}
 

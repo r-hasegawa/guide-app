@@ -23,18 +23,21 @@ export default function ProfileViewPage() {
           if (profile) {
             setGuideProfile(profile);
           } else {
+            // プロフィールが存在しない場合は編集ページへ
             router.push("/mypage/profile/edit");
           }
-        } else {
+        } else { // userInfo.role === 'guest'
           const profile = await getGuestProfile(user.uid);
           if (profile) {
             setGuestProfile(profile);
           } else {
+            // プロフィールが存在しない場合は編集ページへ
             router.push("/mypage/profile/edit");
           }
         }
       } catch (error) {
         console.error("プロフィール読み込みエラー:", error);
+        // エラー発生時も編集ページへリダイレクト
         router.push("/mypage/profile/edit");
       } finally {
         setProfileLoading(false);
@@ -50,13 +53,17 @@ export default function ProfileViewPage() {
     return <div className="text-center py-10">読み込み中...</div>;
   }
 
-  if (!userInfo) {
+  // user が存在しない場合や userInfo がまだロードされていない場合は null を返す
+  if (!user || !userInfo) {
     return null;
   }
 
   const isGuide = userInfo.role === 'guide';
-  const profile = isGuide ? guideProfile : guestProfile;
+  // 型アサーションを追加して、profile の型を明確にする
+  const profile = (isGuide ? guideProfile : guestProfile) as (GuideProfile | GuestProfile | null);
 
+  // プロフィールデータがまだロードされていない、または存在しない場合は null を返す
+  // (useEffect内でリダイレクト処理が行われるため)
   if (!profile) {
     return null;
   }
@@ -95,11 +102,12 @@ export default function ProfileViewPage() {
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">専門分野・得意エリア</h3>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">対応エリア</h3>
                 <div className="flex flex-wrap gap-2">
-                  {(profile as GuideProfile).specialties.map((specialty, index) => (
+                  {/* Assuming 'areas' from GuideProfile maps to 'specialties' or just displays areas */}
+                  {(profile as GuideProfile).areas.map((area, index) => (
                     <span key={index} className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
-                      {specialty}
+                      {area}
                     </span>
                   ))}
                 </div>
@@ -110,7 +118,9 @@ export default function ProfileViewPage() {
                 <p className="whitespace-pre-line">{(profile as GuideProfile).introduction}</p>
               </div>
 
-              {(profile as GuideProfile).availability && (
+              {/* 既存のガイドプロフィールフィールド（オンボーディングで入力されないが、表示側には残しておく） */}
+              {/* これらのフィールドがGuideProfileインターフェースに含まれることを前提とする */}
+              {/* {(profile as GuideProfile).availability && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-1">対応可能時間</h3>
                   <p>{(profile as GuideProfile).availability}</p>
@@ -135,17 +145,36 @@ export default function ProfileViewPage() {
                     ))}
                   </div>
                 </div>
-              )}
+              )} */}
             </>
           ) : (
             <>
-              {/* 観光客専用フィールド */}
+              {/* 観光客専用フィールド（オンボーディングで入力された項目のみ表示） */}
               <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">話せる言語</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(profile as GuestProfile).languages.map((lang, index) => (
+                    <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                      {lang}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">自己紹介</h3>
+                <p className="whitespace-pre-line">{(profile as GuestProfile).introduction}</p>
+              </div>
+
+              {/* 既存の観光客プロフィールフィールドのうち、オンボーディングで入力されないためコメントアウト */}
+              {/* これらのフィールドが表示されない場合は、FirestoreのGuestProfileインターフェースから削除するか、
+                  オンボーディングページで入力できるようにする必要があります。 */}
+              {/* <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-1">母国語</h3>
                 <p>{(profile as GuestProfile).nativeLanguage}</p>
               </div>
 
-              {(profile as GuestProfile).learningLanguages.length > 0 && (
+              {(profile as GuestProfile).learningLanguages?.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-1">学習したい言語</h3>
                   <div className="flex flex-wrap gap-2">
@@ -174,19 +203,21 @@ export default function ProfileViewPage() {
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">旅行期間</h3>
-                <p>
-                  {(profile as GuestProfile).travelDates.startDate} 〜 {(profile as GuestProfile).travelDates.endDate}
-                </p>
-              </div>
+              {(profile as GuestProfile).travelDates && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">旅行期間</h3>
+                  <p>
+                    {(profile as GuestProfile).travelDates.startDate} 〜 {(profile as GuestProfile).travelDates.endDate}
+                  </p>
+                </div>
+              )}
 
               {(profile as GuestProfile).budget && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-1">予算（1日あたり）</h3>
                   <p>{(profile as GuestProfile).budget}</p>
                 </div>
-              )}
+              )} */}
             </>
           )}
         </div>

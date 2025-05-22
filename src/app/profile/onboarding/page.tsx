@@ -33,7 +33,7 @@ export default function OnboardingPage() {
   const [guestProfile, setGuestProfile] = useState<GuestProfile>({
     name: "",
     languages: [],
-    introduction: ""
+    introduction: "" // Added introduction for guest profile as well
   });
 
   const toggleSelection = (value: string, list: string[], setter: (val: string[]) => void) => {
@@ -75,7 +75,10 @@ export default function OnboardingPage() {
     setStep('profile');
   };
 
-  const addToArray = (profileType: 'guide' | 'guest', field: string, tempField: string) => {
+  // Note: The addToArray and removeFromArray functions were present in the original code
+  // but not used in the form's current structure for languages/areas (toggleSelection is used).
+  // I'm keeping them as is, assuming they might be used for other dynamic fields or in future.
+  const addToArray = (profileType: 'guide' | 'guest', field: string, value: string) => { // Added 'value' parameter
     if (profileType === 'guide') {
       setGuideProfile(prev => ({
         ...prev,
@@ -108,6 +111,7 @@ export default function OnboardingPage() {
   };
 
   const handleGuestInputChange = (field: keyof GuestProfile, value: any) => {
+    // Corrected 'language' to 'languages' to match the state
     setGuestProfile(prev => ({ ...prev, [field]: value }));
   };
 
@@ -118,26 +122,23 @@ export default function OnboardingPage() {
         return false;
       }
       if (guideProfile.languages.length === 0) {
-        setError("話せる言語を少なくとも1つ入力してください。");
+        setError("話せる言語を少なくとも1つ選択してください。"); // Changed message slightly
         return false;
       }
       if (guideProfile.areas.length === 0) {
-        setError("エリアを少なくとも1つ入力してください。");
+        setError("対応エリアを少なくとも1つ選択してください。"); // Changed message slightly
         return false;
       }
-      if (!guideProfile.introduction.trim()) {
-        setError("自己紹介を入力してください。");
-        return false;
-      }
-    } else {
+    } else { // selectedRole === 'guest'
       if (!guestProfile.name.trim()) {
         setError("名前を入力してください。");
         return false;
       }
-      if (guestProfile.language.length === 0) {
-        setError("言語を少なくとも1つ入力してください。");
+      if (guestProfile.languages.length === 0) { // Corrected 'language' to 'languages'
+        setError("話せる言語を少なくとも1つ選択してください。"); // Changed message slightly
         return false;
       }
+      // Assuming introduction is optional for guest, or add validation if required
     }
     return true;
   };
@@ -300,7 +301,9 @@ export default function OnboardingPage() {
             </div>
 
             <div>
-              <label>対応エリア *</label>
+              <label className="block text-sm font-medium mb-2">
+                対応エリア <span className="text-red-500">*</span>
+              </label>
               <div className="flex flex-wrap gap-2">
                 {AREA_OPTIONS.map(area => (
                   <button
@@ -332,19 +335,35 @@ export default function OnboardingPage() {
           <>
             {/* 観光客用フィールド */}
             <div>
-              <label>言語 *</label>
+              <label className="block text-sm font-medium mb-2">
+                話せる言語 <span className="text-red-500">*</span>
+              </label>
               <div className="flex flex-wrap gap-2">
                 {LANGUAGE_OPTIONS.map(lang => (
                   <button
                     key={lang}
                     type="button"
                     className={`px-3 py-1 rounded border ${guestProfile.languages.includes(lang) ? "bg-blue-500 text-white" : "bg-white"}`}
-                    onClick={() => toggleSelection(lang, guestProfile.languages, langs => handleGuestInputChange('language', langs))}
+                    onClick={() => toggleSelection(lang, guestProfile.languages, langs => handleGuestInputChange('languages', langs))} // Corrected 'language' to 'languages'
                   >
                     {lang}
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Added introduction field for guest profile */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                自己紹介 (任意)
+              </label>
+              <textarea
+                value={guestProfile.introduction}
+                onChange={(e) => handleGuestInputChange('introduction', e.target.value)}
+                rows={4}
+                className="w-full border rounded px-3 py-2"
+                placeholder="あなたの興味や日本での過ごし方について教えてください"
+              />
             </div>
           </>
         )}
