@@ -1,4 +1,3 @@
-// src/app/page.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -7,14 +6,28 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import Link from "next/link";
 
 export default function HomePage() {
-  const { user, loading } = useAuthContext();
+  const { user, userInfo, loading } = useAuthContext();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && user) {
-      router.replace("/mypage");
+    if (!loading && user && userInfo) {
+      // プロフィールが完了している場合はマイページへ
+      if (userInfo.profileCompleted) {
+        router.replace("/mypage");
+      } else {
+        // プロフィールが未完了の場合はオンボーディングへ
+        router.replace("/profile/onboarding");
+      }
     }
-  }, [user, loading, router]);
+  }, [user, userInfo, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">読み込み中...</div>
+      </div>
+    );
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-white text-gray-800 px-4">
@@ -25,10 +38,10 @@ export default function HomePage() {
 
       <section className="mt-10 flex flex-col gap-4 w-full max-w-md">
         <Link
-          href="/signup?role=student"
+          href="/signup?role=guide"
           className="bg-blue-600 text-white py-3 rounded-lg text-center hover:bg-blue-700 transition"
         >
-          学生として登録
+          ガイドとして登録
         </Link>
         <Link
           href="/signup?role=guest"
