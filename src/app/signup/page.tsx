@@ -2,19 +2,14 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/firebase/firebaseConfig';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 export default function SignupPage() {
-
-  useEffect(() => {
-    if (!loading && user) {
-      router.replace("/profile/view");
-    }
-  }, [user, loading, router]);
-
+  const { user, loading } = useAuthContext();
   const searchParams = useSearchParams();
   const role = searchParams.get('role');
   const router = useRouter();
@@ -26,6 +21,12 @@ export default function SignupPage() {
   });
 
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("mypage/profile/view");
+    }
+  }, [user, loading, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

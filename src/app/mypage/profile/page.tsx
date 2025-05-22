@@ -23,10 +23,10 @@ export default function ProfileRouter() {
         const profile = await getUserProfile(user.uid);
         if (profile) {
           // プロフィールが存在 → /profile/view に遷移
-          router.push("/profile/view");
+          router.push("/mypage/profile/view");
         } else {
           // プロフィール未登録 → /profile/edit に遷移
-          router.push("/profile/edit");
+          router.push("/mypage/profile/edit");
         }
       } catch (error) {
         console.error("プロフィール確認中にエラー:", error);

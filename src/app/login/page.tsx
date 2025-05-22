@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/profile/view");
+      router.replace("/mypage");
     }
   }, [user, loading, router]);
 

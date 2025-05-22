@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { saveUserProfile, getUserProfile } from "@/firebase/firestore";
+import { saveUserProfile, getUserProfile, UserProfile } from "@/firebase/firestore";
 
 export default function ProfileEditPage() {
   const { user } = useAuthContext();
   const router = useRouter();
 
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<UserProfile>({
     name: "",
     language: "",
     introduction: "",
@@ -22,7 +22,7 @@ export default function ProfileEditPage() {
   const handleSave = async () => {
     if (!user) return;
     await saveUserProfile(user.uid, profile);
-    router.push("/profile/view");
+    router.push("/mypage/profile/view");
   };
 
   useEffect(() => {

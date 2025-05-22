@@ -6,11 +6,12 @@ interface User {
   id: string;
   name: string;
   languages: string[];
-  rating: number; // レーティング（仮）
+  rating: number;
 }
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // 仮のユーザーデータフェッチ
   useEffect(() => {
@@ -21,7 +22,12 @@ export default function UsersPage() {
       { id: "3", name: "Kim Minseo", languages: ["韓国語", "英語"], rating: 4.7 },
     ];
     setUsers(fetchedUsers);
+    setLoading(false);
   }, []);
+
+  if (loading) {
+    return <div className="text-center py-10">読み込み中...</div>;
+  }
 
   return (
     <main className="max-w-3xl mx-auto p-6">
