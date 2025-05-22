@@ -13,7 +13,7 @@ import {
 } from "@/firebase/firestore";
 
 export default function ProfileEditPage() {
-  const { user, userInfo, loading } = useAuthContext();
+  const { user, userInfo, loading, refreshUserInfo } = useAuthContext();
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,7 +24,6 @@ export default function ProfileEditPage() {
     name: "",
     languages: [],
     introduction: "",
-    specialties: [],
     availability: "",
     hourlyRate: undefined,
     certifications: []
@@ -59,7 +58,7 @@ export default function ProfileEditPage() {
       return;
     }
 
-    if (!loading && user && userInfo && !userInfo.profileCompleted) {
+    if (!loading && user && userInfo && !userInfo.role) {
       router.replace("/profile/onboarding");
       return;
     }
@@ -128,11 +127,55 @@ export default function ProfileEditPage() {
     }
   };
 
+  const validateForm = () => {
+    if (userInfo?.role === 'guide') {
+      if (!guideProfile.name.trim()) {
+        setError("名前を入力してください。");
+        return false;
+      }
+      if (guideProfile.languages.length === 0) {
+        setError("話せる言語を少なくとも1つ入力してください。");
+        return false;
+      }
+      if (!guideProfile.introduction.trim()) {
+        setError("自己紹介を入力してください。");
+        return false;
+      }
+    } else {
+      if (!guestProfile.name.trim()) {
+        setError("名前を入力してください。");
+        return false;
+      }
+      if (!guestProfile.nativeLanguage.trim()) {
+        setError("母国語を入力してください。");
+        return false;
+      }
+      if (!guestProfile.visitPurpose.trim()) {
+        setError("訪問目的を選択してください。");
+        return false;
+      }
+      if (guestProfile.interests.length === 0) {
+        setError("興味のある分野を少なくとも1つ入力してください。");
+        return false;
+      }
+      if (!guestProfile.travelDates.startDate || !guestProfile.travelDates.endDate) {
+        setError("旅行期間を入力してください。");
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSave = async () => {
     if (!user || !userInfo) return;
 
-    setIsSubmitting(true);
     setError("");
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       if (userInfo.role === 'guide') {
@@ -140,6 +183,10 @@ export default function ProfileEditPage() {
       } else {
         await saveGuestProfile(user.uid, guestProfile);
       }
+      
+      // AuthContextの情報を更新
+      await refreshUserInfo();
+      
       router.push("/mypage/profile/view");
     } catch (err) {
       console.error("保存エラー:", err);
@@ -184,7 +231,7 @@ export default function ProfileEditPage() {
             {/* ガイド用フィールド */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                話せる言語 <span className="text-red-500">*</span>
+                言語 <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2 mb-2">
                 <input
@@ -220,42 +267,6 @@ export default function ProfileEditPage() {
 
             <div>
               <label className="block text-sm font-medium mb-2">
-                専門分野・得意エリア <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={tempInputs.specialty}
-                  onChange={(e) => setTempInputs(prev => ({ ...prev, specialty: e.target.value }))}
-                  className="flex-1 border rounded px-3 py-2"
-                  placeholder="例: 浅草・歴史文化"
-                />
-                <button
-                  type="button"
-                  onClick={() => addToArray('guide', 'specialties', 'specialty')}
-                  className="bg-blue-500 text-white px-4 py-2 rounded"
-                >
-                  追加
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {guideProfile.specialties.map((specialty, index) => (
-                  <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                    {specialty}
-                    <button
-                      type="button"
-                      onClick={() => removeFromArray('guide', 'specialties', index)}
-                      className="ml-2 text-red-500"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
                 自己紹介 <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -266,75 +277,13 @@ export default function ProfileEditPage() {
                 placeholder="あなたのガイド経験や特徴を教えてください"
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                対応可能時間
-              </label>
-              <input
-                type="text"
-                value={guideProfile.availability}
-                onChange={(e) => handleGuideInputChange('availability', e.target.value)}
-                className="w-full border rounded px-3 py-2"
-                placeholder="例: 平日 9:00-17:00"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                希望時給（円）
-              </label>
-              <input
-                type="number"
-                value={guideProfile.hourlyRate || ''}
-                onChange={(e) => handleGuideInputChange('hourlyRate', e.target.value ? parseInt(e.target.value) : undefined)}
-                className="w-full border rounded px-3 py-2"
-                placeholder="例: 2000"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                資格・認定
-              </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={tempInputs.certification}
-                  onChange={(e) => setTempInputs(prev => ({ ...prev, certification: e.target.value }))}
-                  className="flex-1 border rounded px-3 py-2"
-                  placeholder="例: 通訳案内士"
-                />
-                <button
-                  type="button"
-                  onClick={() => addToArray('guide', 'certifications', 'certification')}
-                  className="bg-blue-500 text-white px-4 py-2 rounded"
-                >
-                  追加
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {guideProfile.certifications?.map((cert, index) => (
-                  <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                    {cert}
-                    <button
-                      type="button"
-                      onClick={() => removeFromArray('guide', 'certifications', index)}
-                      className="ml-2 text-red-500"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
           </>
         ) : (
           <>
             {/* 観光客用フィールド */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                母国語 <span className="text-red-500">*</span>
+                言語 <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -343,144 +292,6 @@ export default function ProfileEditPage() {
                 className="w-full border rounded px-3 py-2"
                 placeholder="例: 英語"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                学習したい言語
-              </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={tempInputs.learningLanguage}
-                  onChange={(e) => setTempInputs(prev => ({ ...prev, learningLanguage: e.target.value }))}
-                  className="flex-1 border rounded px-3 py-2"
-                  placeholder="例: 日本語"
-                />
-                <button
-                  type="button"
-                  onClick={() => addToArray('guest', 'learningLanguages', 'learningLanguage')}
-                  className="bg-blue-500 text-white px-4 py-2 rounded"
-                >
-                  追加
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {guestProfile.learningLanguages.map((lang, index) => (
-                  <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                    {lang}
-                    <button
-                      type="button"
-                      onClick={() => removeFromArray('guest', 'learningLanguages', index)}
-                      className="ml-2 text-red-500"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                訪問目的 <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={guestProfile.visitPurpose}
-                onChange={(e) => handleGuestInputChange('visitPurpose', e.target.value)}
-                className="w-full border rounded px-3 py-2"
-              >
-                <option value="">選択してください</option>
-                <option value="観光">観光</option>
-                <option value="ビジネス">ビジネス</option>
-                <option value="留学">留学</option>
-                <option value="文化体験">文化体験</option>
-                <option value="その他">その他</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                興味のある分野 <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={tempInputs.interest}
-                  onChange={(e) => setTempInputs(prev => ({ ...prev, interest: e.target.value }))}
-                  className="flex-1 border rounded px-3 py-2"
-                  placeholder="例: 歴史・文化"
-                />
-                <button
-                  type="button"
-                  onClick={() => addToArray('guest', 'interests', 'interest')}
-                  className="bg-blue-500 text-white px-4 py-2 rounded"
-                >
-                  追加
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {guestProfile.interests.map((interest, index) => (
-                  <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                    {interest}
-                    <button
-                      type="button"
-                      onClick={() => removeFromArray('guest', 'interests', index)}
-                      className="ml-2 text-red-500"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  開始日 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={guestProfile.travelDates.startDate}
-                  onChange={(e) => handleGuestInputChange('travelDates', {
-                    ...guestProfile.travelDates,
-                    startDate: e.target.value
-                  })}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  終了日 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={guestProfile.travelDates.endDate}
-                  onChange={(e) => handleGuestInputChange('travelDates', {
-                    ...guestProfile.travelDates,
-                    endDate: e.target.value
-                  })}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                予算（1日あたり・円）
-              </label>
-              <select
-                value={guestProfile.budget}
-                onChange={(e) => handleGuestInputChange('budget', e.target.value)}
-                className="w-full border rounded px-3 py-2"
-              >
-                <option value="">選択してください</option>
-                <option value="〜5,000円">〜5,000円</option>
-                <option value="5,000〜10,000円">5,000〜10,000円</option>
-                <option value="10,000〜20,000円">10,000〜20,000円</option>
-                <option value="20,000円〜">20,000円〜</option>
-              </select>
             </div>
           </>
         )}
@@ -495,6 +306,7 @@ export default function ProfileEditPage() {
           <button
             onClick={() => router.back()}
             className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50"
+            disabled={isSubmitting}
           >
             キャンセル
           </button>

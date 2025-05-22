@@ -7,21 +7,20 @@ import Link from 'next/link';
 import { 
   createUserWithEmailAndPassword, 
   signInWithPopup, 
-  GoogleAuthProvider,
-  updateProfile 
+  GoogleAuthProvider
 } from 'firebase/auth';
 import { auth } from '@/firebase/firebaseConfig';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { saveUserProfile } from '@/firebase/firestore';
+import { doc, setDoc } from "firebase/firestore";
+import { db } from '@/firebase/firebaseConfig';
 
 export default function SignupPage() {
   const { user, loading } = useAuthContext();
   const searchParams = useSearchParams();
-  const role = searchParams.get('role');
+  const role = searchParams.get('role') as 'guide' | 'guest' | null;
   const router = useRouter();
 
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
   });
@@ -31,51 +30,64 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/mypage/profile");
+      router.replace("/profile/onboarding");
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    // ロールが指定されていない場合はトップページにリダイレクト
+    if (!role || (role !== 'guide' && role !== 'guest')) {
+      router.replace('/');
+    }
+  }, [role, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const saveUserRoleAndProfile = async (firebaseUser: any, displayName: string) => {
-    // ユーザーの基本情報を保存
+  const saveUserBasicInfo = async (firebaseUser: any) => {
+    // ユーザーの基本情報を保存（ロールは含めない）
     const userProfile = {
-      role: role || 'student',
-      name: displayName,
+      email: firebaseUser.email || '',
       createdAt: new Date().toISOString(),
+      profileCompleted: false, // 詳細プロフィールは未完了
     };
     
-    await saveUserProfile(firebaseUser.uid, userProfile);
+    await setDoc(doc(db, "users", firebaseUser.uid), userProfile);
   };
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!role) return;
+    
     setError(null);
     setIsLoading(true);
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       
-      // プロフィールに名前を設定
-      await updateProfile(userCredential.user, {
-        displayName: formData.name
-      });
-
-      await saveUserRoleAndProfile(userCredential.user, formData.name);
+      await saveUserBasicInfo(userCredential.user);
       
-      alert(`${role === 'student' ? '学生' : '観光客'}として登録しました！`);
-      router.push('/mypage/profile');
+      // オンボーディングでロール選択とプロフィール設定を行う
+      router.push('/profile/onboarding');
     } catch (err: any) {
-      setError('登録に失敗しました。もう一度お試しください。');
+      console.error('登録エラー:', err);
+      if (err.code === 'auth/email-already-in-use') {
+        setError('このメールアドレスは既に使用されています。');
+      } else if (err.code === 'auth/weak-password') {
+        setError('パスワードは6文字以上で入力してください。');
+      } else {
+        setError('登録に失敗しました。もう一度お試しください。');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignup = async () => {
+    if (!role) return;
+    
     setError(null);
     setIsLoading(true);
     
@@ -83,11 +95,12 @@ export default function SignupPage() {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       
-      await saveUserRoleAndProfile(result.user, result.user.displayName || 'ユーザー');
+      await saveUserBasicInfo(result.user);
       
-      alert(`${role === 'student' ? '学生' : '観光客'}として登録しました！`);
-      router.push('/mypage/profile');
+      // オンボーディングでロール選択とプロフィール設定を行う
+      router.push('/profile/onboarding');
     } catch (err: any) {
+      console.error('Google登録エラー:', err);
       setError('Google登録に失敗しました。');
     } finally {
       setIsLoading(false);
@@ -96,11 +109,13 @@ export default function SignupPage() {
 
   if (loading) return <div className="text-center py-10">読み込み中...</div>;
 
+  if (!role) return null;
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-white text-gray-800 px-4">
       <div className="w-full max-w-md">
         <h1 className="text-2xl font-bold mb-6 text-center">
-          {role === 'student' ? '学生としての登録' : '観光客としての登録'}
+          {role === 'guide' ? 'ガイドとしての登録' : '観光客としての登録'}
         </h1>
         
         {/* ソーシャル登録ボタン */}
@@ -129,16 +144,6 @@ export default function SignupPage() {
 
         {/* メール登録フォーム */}
         <form onSubmit={handleEmailSignup} className="flex flex-col gap-4">
-          <input
-            type="text"
-            name="name"
-            placeholder="名前"
-            value={formData.name}
-            onChange={handleChange}
-            className="border rounded px-4 py-2"
-            disabled={isLoading}
-            required
-          />
           <input
             type="email"
             name="email"

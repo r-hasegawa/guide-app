@@ -3,7 +3,7 @@ import { db } from "./firebaseConfig";
 
 // ユーザーの基本情報（ロール情報含む）
 export interface UserBasicInfo {
-  role: 'guide' | 'guest';
+  role: 'guide' | 'guest'; 
   email: string;
   createdAt: string;
   profileCompleted: boolean;
@@ -11,28 +11,24 @@ export interface UserBasicInfo {
 
 // ガイド用プロフィール
 export interface GuideProfile {
-  name: string;
-  languages: string[];
-  introduction: string;
-  specialties: string[]; // 専門分野（観光地、文化など）
-  availability: string; // 対応可能時間
-  hourlyRate?: number; // 時給（任意）
-  certifications?: string[]; // 資格（任意）
+  name: string;               // *必須: 名前
+  languages: string[];        // *必須: 対応言語（例: ["英語", "フランス語"]）
+  areas: string[];           // *必須: 対応エリア（例: ["東京", "大阪"]）
+  introduction?: string;      // 自己紹介（任意）
 }
 
 // 観光客用プロフィール
 export interface GuestProfile {
-  name: string;
-  nativeLanguage: string;
-  learningLanguages: string[];
-  visitPurpose: string; // 訪問目的
-  interests: string[]; // 興味のある分野
-  travelDates: {
-    startDate: string;
-    endDate: string;
-  };
-  budget?: string; // 予算（任意）
+  name: string;               // *必須: 名前
+  language: string[];         // *必須: 使用言語（例: ["英語"]）
+  bio?: string;               // 自己紹介（任意）
 }
+
+export type ProfileType = 'guide' | 'guest';
+
+export type UserProfile =
+  | { type: 'guide'; profile: GuideProfile }
+  | { type: 'guest'; profile: GuestProfile };
 
 // ユーザーの基本情報を保存
 export const saveUserBasicInfo = async (uid: string, basicInfo: UserBasicInfo) => {
@@ -48,7 +44,9 @@ export const getUserBasicInfo = async (uid: string): Promise<UserBasicInfo | nul
 
 // ガイドプロフィールを保存
 export const saveGuideProfile = async (uid: string, profile: GuideProfile) => {
+  // プロフィールを保存
   await setDoc(doc(db, "guide_profiles", uid), profile);
+  
   // プロフィール完了フラグを更新
   await setDoc(doc(db, "users", uid), { profileCompleted: true }, { merge: true });
 };
@@ -62,7 +60,9 @@ export const getGuideProfile = async (uid: string): Promise<GuideProfile | null>
 
 // 観光客プロフィールを保存
 export const saveGuestProfile = async (uid: string, profile: GuestProfile) => {
+  // プロフィールを保存
   await setDoc(doc(db, "guest_profiles", uid), profile);
+  
   // プロフィール完了フラグを更新
   await setDoc(doc(db, "users", uid), { profileCompleted: true }, { merge: true });
 };
@@ -76,7 +76,6 @@ export const getGuestProfile = async (uid: string): Promise<GuestProfile | null>
 
 // 既存の関数（後方互換性のため）
 export interface UserProfile {
-  name: string;
   language: string;
   introduction: string;
 }

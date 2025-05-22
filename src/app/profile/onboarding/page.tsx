@@ -1,78 +1,370 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/firebase/firebaseConfig";
+import { 
+  saveGuideProfile, 
+  saveGuestProfile, 
+  GuideProfile, 
+  GuestProfile 
+} from "@/firebase/firestore";
 
-export default function LoginPage() {
-  const { user, userInfo, loading } = useAuthContext();
+const LANGUAGE_OPTIONS = ["英語", "中国語", "フランス語", "ドイツ語", "スペイン語"];
+const AREA_OPTIONS = ["東京", "大阪", "京都", "奈良", "福岡"];
+
+export default function OnboardingPage() {
+  const { user, userInfo, loading, refreshUserInfo } = useAuthContext();
   const router = useRouter();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  
+  const [step, setStep] = useState<'role' | 'profile'>('role');
+  const [selectedRole, setSelectedRole] = useState<'guide' | 'guest' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  // 初期プロフィールデータ
+  const [guideProfile, setGuideProfile] = useState<GuideProfile>({
+    name: "",
+    languages: [],
+    areas: [],
+    introduction: ""
+  });
+
+  const [guestProfile, setGuestProfile] = useState<GuestProfile>({
+    name: "",
+    languages: [],
+    introduction: ""
+  });
+
+  const toggleSelection = (value: string, list: string[], setter: (val: string[]) => void) => {
+    if (list.includes(value)) {
+      setter(list.filter(item => item !== value));
+    } else {
+    setter([...list, value]);
+    }
+  };
 
   useEffect(() => {
-    if (!loading && user && userInfo) {
-      // プロフィールが完了している場合はマイページへ
-      if (userInfo.profileCompleted) {
-        router.replace("/mypage");
-      } else {
-        // プロフィールが未完了の場合はオンボーディングへ
-        router.replace("/profile/onboarding");
-      }
+    // ログインしていない場合はログインページへ
+    if (!loading && !user) {
+      router.replace("/login");
+      return;
+    }
+
+    // プロフィールが完了している場合はマイページへ（オンボーディング不要）
+    if (!loading && user && userInfo?.profileCompleted) {
+      router.replace("/mypage");
+      return;
+    }
+
+    // userInfoが存在しない場合は待機
+    if (!loading && user && !userInfo) {
+      // 新規ユーザーの場合、まずロール選択から開始
+      setStep('role');
+    }
+
+    // userInfoが存在してロールが設定されている場合はプロフィール設定へ
+    if (!loading && user && userInfo && userInfo.role && !userInfo.profileCompleted) {
+      setSelectedRole(userInfo.role);
+      setStep('profile');
     }
   }, [user, userInfo, loading, router]);
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleRoleSelection = (role: 'guide' | 'guest') => {
+    setSelectedRole(role);
+    setStep('profile');
+  };
+
+  const addToArray = (profileType: 'guide' | 'guest', field: string, tempField: string) => {
+    if (profileType === 'guide') {
+      setGuideProfile(prev => ({
+        ...prev,
+        [field]: [...(prev[field as keyof GuideProfile] as string[]), value.trim()]
+      }));
+    } else {
+      setGuestProfile(prev => ({
+        ...prev,
+        [field]: [...(prev[field as keyof GuestProfile] as string[]), value.trim()]
+      }));
+    }
+  };
+
+  const removeFromArray = (profileType: 'guide' | 'guest', field: string, index: number) => {
+    if (profileType === 'guide') {
+      setGuideProfile(prev => ({
+        ...prev,
+        [field]: (prev[field as keyof GuideProfile] as string[]).filter((_, i) => i !== index)
+      }));
+    } else {
+      setGuestProfile(prev => ({
+        ...prev,
+        [field]: (prev[field as keyof GuestProfile] as string[]).filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const handleGuideInputChange = (field: keyof GuideProfile, value: any) => {
+    setGuideProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleGuestInputChange = (field: keyof GuestProfile, value: any) => {
+    setGuestProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  const validateProfile = () => {
+    if (selectedRole === 'guide') {
+      if (!guideProfile.name.trim()) {
+        setError("名前を入力してください。");
+        return false;
+      }
+      if (guideProfile.languages.length === 0) {
+        setError("話せる言語を少なくとも1つ入力してください。");
+        return false;
+      }
+      if (guideProfile.areas.length === 0) {
+        setError("エリアを少なくとも1つ入力してください。");
+        return false;
+      }
+      if (!guideProfile.introduction.trim()) {
+        setError("自己紹介を入力してください。");
+        return false;
+      }
+    } else {
+      if (!guestProfile.name.trim()) {
+        setError("名前を入力してください。");
+        return false;
+      }
+      if (guestProfile.language.length === 0) {
+        setError("言語を少なくとも1つ入力してください。");
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleProfileSave = async () => {
+    if (!user || !selectedRole) return;
+
     setError("");
+    
+    if (!validateProfile()) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // ログイン成功後は useEffect でリダイレクト処理される
-    } catch (err: any) {
-      console.error("ログインエラー:", err);
-      setError("ログインに失敗しました。メールアドレスまたはパスワードを確認してください。");
+      if (selectedRole === 'guide') {
+        await saveGuideProfile(user.uid, guideProfile);
+      } else {
+        await saveGuestProfile(user.uid, guestProfile);
+      }
+      
+      // AuthContextの情報を更新
+      await refreshUserInfo();
+      
+      router.push("/mypage");
+    } catch (err) {
+      console.error("プロフィール保存エラー:", err);
+      setError("プロフィールの保存に失敗しました。もう一度お試しください。");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (loading) return <div className="text-center py-10">読み込み中...</div>;
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">読み込み中...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // useEffectでリダイレクト処理されるので、何も表示しない
+  }
+
+  // プロフィール完了済みの場合はアクセス不可
+  if (userInfo?.profileCompleted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <p>既にプロフィールが設定済みです。</p>
+          <button 
+            onClick={() => router.push("/mypage")}
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            マイページへ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'role') {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-white text-gray-800 px-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold mb-2">ようこそ！</h1>
+            <p className="text-gray-600">
+              {user.displayName || user.email}さん、<br />
+              どちらとしてご利用されますか？
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <button
+              onClick={() => handleRoleSelection('guide')}
+              className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg hover:bg-blue-700 transition"
+            >
+              <div className="text-left">
+                <div className="font-bold text-lg">🎓 ガイドとして登録</div>
+                <div className="text-sm opacity-90 mt-1">
+                  訪日観光客の方に日本の魅力を伝え、言語交流をしながら収入を得る
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleRoleSelection('guest')}
+              className="w-full bg-green-600 text-white py-4 px-6 rounded-lg hover:bg-green-700 transition"
+            >
+              <div className="text-left">
+                <div className="font-bold text-lg">✈️ 観光客として登録</div>
+                <div className="text-sm opacity-90 mt-1">
+                  日本の学生ガイドと一緒に観光し、リアルな言語交流を体験する
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // プロフィール設定画面
+  const isGuide = selectedRole === 'guide';
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 shadow rounded bg-white">
-      <h2 className="text-xl font-bold mb-4">ログイン</h2>
-      <form onSubmit={handleLogin} className="space-y-4">
-        <input
-          type="email"
-          placeholder="メールアドレス"
-          className="w-full border p-2 rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="パスワード"
-          className="w-full border p-2 rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <button 
-          type="submit" 
-          disabled={isSubmitting}
-          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:opacity-50"
-        >
-          {isSubmitting ? 'ログイン中...' : 'ログイン'}
-        </button>
-      </form>
-    </div>
+    <main className="max-w-2xl mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-2">
+          {isGuide ? 'ガイドプロフィール設定' : '観光客プロフィール設定'}
+        </h1>
+        <p className="text-gray-600">
+          {isGuide 
+            ? 'ガイドとしてのプロフィールを設定してください。' 
+            : '観光客としてのプロフィールを設定してください。'
+          }
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {/* 名前 */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            名前 <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={isGuide ? guideProfile.name : guestProfile.name}
+            onChange={(e) => isGuide 
+              ? handleGuideInputChange('name', e.target.value)
+              : handleGuestInputChange('name', e.target.value)
+            }
+            className="w-full border rounded px-3 py-2"
+            placeholder="山田 太郎"
+          />
+        </div>
+
+        {isGuide ? (
+          <>
+            {/* ガイド用フィールド */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                対応言語 <span className="text-red-500">*</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {LANGUAGE_OPTIONS.map((lang) => (
+                  <button
+                    type="button"
+                    key={lang}
+                    className={`px-3 py-1 rounded border ${guideProfile.languages.includes(lang) ? "bg-blue-500 text-white" : "bg-white"}`}
+                    onClick={() => toggleSelection(lang, guideProfile.languages, langs => handleGuideInputChange('languages', langs))}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label>対応エリア *</label>
+              <div className="flex flex-wrap gap-2">
+                {AREA_OPTIONS.map(area => (
+                  <button
+                    key={area}
+                    type="button"
+                    className={`px-3 py-1 rounded border ${guideProfile.areas.includes(area) ? "bg-green-500 text-white" : "bg-white"}`}
+                    onClick={() => toggleSelection(area, guideProfile.areas, areas => handleGuideInputChange('areas', areas))}
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                自己紹介
+              </label>
+              <textarea
+                value={guideProfile.introduction}
+                onChange={(e) => handleGuideInputChange('introduction', e.target.value)}
+                rows={4}
+                className="w-full border rounded px-3 py-2"
+                placeholder="あなたのガイド経験や特徴を教えてください"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* 観光客用フィールド */}
+            <div>
+              <label>言語 *</label>
+              <div className="flex flex-wrap gap-2">
+                {LANGUAGE_OPTIONS.map(lang => (
+                  <button
+                    key={lang}
+                    type="button"
+                    className={`px-3 py-1 rounded border ${guestProfile.languages.includes(lang) ? "bg-blue-500 text-white" : "bg-white"}`}
+                    onClick={() => toggleSelection(lang, guestProfile.languages, langs => handleGuestInputChange('language', langs))}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded p-4">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
+        <div className="flex gap-4 pt-6">
+          <button
+            onClick={handleProfileSave}
+            disabled={isSubmitting}
+            className="flex-1 bg-blue-600 text-white py-2 px-6 rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isSubmitting ? '保存中...' : 'プロフィールを保存'}
+          </button>
+        </div>
+      </div>
+    </main>
   );
 }

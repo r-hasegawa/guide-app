@@ -11,7 +11,7 @@ import {
 import { auth } from "@/firebase/firebaseConfig";
 
 export default function LoginPage() {
-  const { user, loading } = useAuthContext();
+  const { user, userInfo, loading } = useAuthContext();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -20,10 +20,20 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
-      router.replace("/mypage");
+    if (!loading && user && userInfo) {
+      // ユーザー情報が存在するかチェック
+      if (userInfo.profileCompleted) {
+        // プロフィール完了済み → マイページへ
+        router.replace("/mypage");
+      } else {
+        // プロフィール未完了 → オンボーディングへ
+        router.replace("/profile/onboarding");
+      }
+    } else if (!loading && user && !userInfo) {
+      // ログインしているがuserInfoがない場合（新規ユーザー）→ オンボーディングへ
+      router.replace("/profile/onboarding");
     }
-  }, [user, loading, router]);
+  }, [user, userInfo, loading, router]);
 
   const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -32,9 +42,18 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/mypage/profile");
+      // ログイン成功後はuseEffectでリダイレクト処理される
     } catch (err: any) {
-      setError("ログインに失敗しました。メールアドレスまたはパスワードを確認してください。");
+      console.error("ログインエラー:", err);
+      if (err.code === 'auth/user-not-found') {
+        setError("このメールアドレスは登録されていません。");
+      } else if (err.code === 'auth/wrong-password') {
+        setError("パスワードが間違っています。");
+      } else if (err.code === 'auth/invalid-email') {
+        setError("メールアドレスの形式が正しくありません。");
+      } else {
+        setError("ログインに失敗しました。メールアドレスまたはパスワードを確認してください。");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -47,8 +66,9 @@ export default function LoginPage() {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-      router.push("/mypage/profile");
+      // ログイン成功後はuseEffectでリダイレクト処理される
     } catch (err: any) {
+      console.error("Googleログインエラー:", err);
       setError("Googleログインに失敗しました。");
     } finally {
       setIsLoading(false);
@@ -56,6 +76,9 @@ export default function LoginPage() {
   };
 
   if (loading) return <div className="text-center py-10">読み込み中...</div>;
+
+  // ログイン済みの場合は何も表示しない（useEffectでリダイレクト処理中）
+  if (user) return <div className="text-center py-10">リダイレクト中...</div>;
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 shadow rounded bg-white">
@@ -94,6 +117,7 @@ export default function LoginPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={isLoading}
+          required
         />
         <input
           type="password"
@@ -102,6 +126,7 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={isLoading}
+          required
         />
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <button 
@@ -112,6 +137,13 @@ export default function LoginPage() {
           {isLoading ? "ログイン中..." : "メールでログイン"}
         </button>
       </form>
+
+      <div className="mt-6 text-center text-sm text-gray-500">
+        アカウントをお持ちでない方は{" "}
+        <a href="/" className="text-blue-500 underline hover:text-blue-700">
+          新規登録
+        </a>
+      </div>
     </div>
   );
 }
