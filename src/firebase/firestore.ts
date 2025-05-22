@@ -14,7 +14,7 @@ export interface GuideProfile {
   name: string;               // *必須: 名前
   languages: string[];        // *必須: 対応言語（例: ["英語", "フランス語"]）
   areas: string[];           // *必須: 対応エリア（例: ["東京", "大阪"]）
-  introduction: string;      // 自己紹介（page.tsxで必須になっているため、任意から必須に変更）
+  introduction?: string;      // 自己紹介（page.tsxで必須になっているため、任意から必須に変更）
 }
 
 // 観光客用プロフィール
@@ -50,9 +50,10 @@ export const saveGuideProfile = async (uid: string, profile: GuideProfile) => {
   await setDoc(doc(db, "guide_profiles", uid), profile);
   
   // users コレクションにロールとプロフィール完了フラグを更新
+  // roleもここで設定/更新
   await updateDoc(doc(db, "users", uid), { 
-    role: "guide", // ロールを明示的に設定
-    profileCompleted: true // プロフィール完了
+    role: "guide", 
+    profileCompleted: true 
   });
 };
 
@@ -69,9 +70,10 @@ export const saveGuestProfile = async (uid: string, profile: GuestProfile) => {
   await setDoc(doc(db, "guest_profiles", uid), profile);
   
   // users コレクションにロールとプロフィール完了フラグを更新
+  // roleもここで設定/更新
   await updateDoc(doc(db, "users", uid), { 
-    role: "guest", // ロールを明示的に設定
-    profileCompleted: true // プロフィール完了
+    role: "guest", 
+    profileCompleted: true 
   });
 };
 

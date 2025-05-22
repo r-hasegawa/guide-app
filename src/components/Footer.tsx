@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
 
 export default function Footer() {
-  const { user } = useAuthContext();
+  const { user, userInfo } = useAuthContext(); // userInfoも取得するように変更
   const pathname = usePathname();
 
   // ログインページやサインアップページ、トップでは非表示
@@ -13,23 +13,37 @@ export default function Footer() {
 
   if (!user || isTopPage || isLoginOrSignup) return null;
 
+  // ユーザーがガイドの場合、またはrole情報がまだロードされていない場合は、
+  // ガイド検索ボタンを表示しないためのフラグ
+  const isGuideUser = userInfo && userInfo.role === 'guide'; // userInfoのroleで判定
+
   return (
     <footer className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-md z-50">
-      <nav className="flex justify-around items-center h-14 text-sm">
-        <Link href="/guides" className="flex flex-col items-center">
-          <span>ガイド検索</span>
+      <nav className="flex justify-around items-center h-14 text-sm text-gray-700">
+        {/* ガイドではない、またはロール情報がまだロードされていない場合にのみ「ガイド検索」を表示 */}
+        {!isGuideUser && ( // ガイドではない場合のみ表示
+          <Link href="/guides" className="flex flex-col items-center flex-1 py-2 border-r last:border-r-0">
+            <span role="img" aria-label="search guide" className="text-xl">🔍</span>
+            <span className="mt-1 text-xs sm:text-sm">ガイド検索</span>
+          </Link>
+        )}
+        
+        {/* ガイドの場合は4等分、それ以外は5等分になるように調整 */}
+        <Link href="/posts" className={`flex flex-col items-center py-2 border-r last:border-r-0 ${isGuideUser ? 'flex-1' : 'flex-1'}`}>
+          <span role="img" aria-label="recruit guide" className="text-xl">📝</span>
+          <span className="mt-1 text-xs sm:text-sm">ガイド募集</span>
         </Link>
-        <Link href="/posts" className="flex flex-col items-center">
-          <span>ガイド募集</span>
+        <Link href="/chat" className={`flex flex-col items-center py-2 border-r last:border-r-0 ${isGuideUser ? 'flex-1' : 'flex-1'}`}>
+          <span role="img" aria-label="chat" className="text-xl">💬</span>
+          <span className="mt-1 text-xs sm:text-sm">チャット</span>
         </Link>
-        <Link href="/chat" className="flex flex-col items-center">
-          <span>チャット</span>
+        <Link href="/requests" className={`flex flex-col items-center py-2 border-r last:border-r-0 ${isGuideUser ? 'flex-1' : 'flex-1'}`}>
+          <span role="img" aria-label="manage requests" className="text-xl">📬</span>
+          <span className="mt-1 text-xs sm:text-sm">申請管理</span>
         </Link>
-        <Link href="/requests" className="flex flex-col items-center">
-          <span>申請管理</span>
-        </Link>
-        <Link href="/mypage" className="flex flex-col items-center">
-          <span>マイページ</span>
+        <Link href="/mypage" className={`flex flex-col items-center py-2 ${isGuideUser ? 'flex-1' : 'flex-1'}`}> {/* 最後の要素には border-r-0 を適用 */}
+          <span role="img" aria-label="my page" className="text-xl">👤</span>
+          <span className="mt-1 text-xs sm:text-sm">マイページ</span>
         </Link>
       </nav>
     </footer>

@@ -7,7 +7,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/firebase/firebaseConfig";
 
 export default function Header() {
-  const { user, loading } = useAuthContext();
+  const { user, userInfo, loading } = useAuthContext();
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -15,27 +15,37 @@ export default function Header() {
 
   return (
     <header className="flex justify-between items-center px-6 py-4 bg-gray-100">
-      <Link href="/" className="text-xl font-bold">GuideApp</Link>
+      <Link href="/" className="text-xl text-gray-700 font-bold">TABIFY</Link>
 
       {!loading && (
-        <div className="flex gap-4 items-center">
+        <div className="flex items-center">
           {user ? (
             <>
-              <span className="text-sm text-gray-700">ようこそ、{user.displayName ?? "ユーザー"} さん</span>
+              {/* ユーザーのロールに応じたアイコンと文字表示 */}
+              {userInfo && userInfo.role && (
+                <div className="flex flex-col items-center mr-4"> {/* flex-colとmr-4を追加 */}
+                  <span className="text-lg" role="img" aria-label="user role">
+                    {userInfo.role === 'guide' ? '🎓' : '✈️'}
+                  </span>
+                  <span className="text-xs text-gray-600">
+                    {userInfo.role === 'guide' ? 'ガイド' : '観光客'}
+                  </span>
+                </div>
+              )}
+
+              {/* ログアウトボタンをアイコンと文字で表示 */}
               <button
                 onClick={handleLogout}
-                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                className="flex flex-col items-center text-gray-700 hover:text-red-600 focus:outline-none"
+                aria-label="ログアウト"
               >
-                ログアウト
+                <span role="img" aria-label="logout" className="text-xl">🚪</span>
+                <span className="text-xs text-gray-600 mt-0.5">ログアウト</span> {/* mt-0.5で少しマージン */}
               </button>
             </>
           ) : (
-            <Link
-              href="/login"
-              className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-            >
-              ログイン
-            </Link>
+            // 未ログイン時は何も表示しない
+            null
           )}
         </div>
       )}
