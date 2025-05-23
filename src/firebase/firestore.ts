@@ -201,3 +201,177 @@ export const getAllGuideProfiles = async (): Promise<(GuideProfile & { id: strin
     ...doc.data()
   } as GuideProfile & { id: string }));
 };
+
+// ガイド → 募集(観光客からのリクルート) に対する　リクエスト送信までのDB設計 
+// src/firebase/firestore.ts に追加する型定義と関数
+
+// 募集投稿の型定義
+export interface GuestPost {
+  id: string;
+  guestId: string;           // 投稿者（観光客）のUID
+  guestName: string;         // 投稿者の名前
+  title: string;             // 募集タイトル
+  description: string;       // 募集詳細
+  preferredLanguages: string[]; // 希望する言語
+  areas: string[];           // 希望するエリア
+  date?: string;             // 希望日時（任意）
+  budget?: string;           // 予算（任意）
+  status: 'active' | 'closed'; // 募集状態
+  createdAt: string;         // 作成日時
+  updatedAt: string;         // 更新日時
+}
+
+// ガイドから観光客の募集投稿に対する応募
+export interface GuideApplication {
+  id: string;
+  postId: string;            // 募集投稿のID
+  guideId: string;           // 応募したガイドのUID
+  guideName: string;         // ガイドの名前
+  guestId: string;           // 募集投稿者（観光客）のUID
+  guestName: string;         // 募集投稿者の名前
+  postTitle: string;         // 募集投稿のタイトル
+  message: string;           // 応募メッセージ
+  status: RequestStatus;     // 応募の状態（既存のRequestStatusを流用）
+  createdAt: string;         // 作成日時
+  updatedAt: string;         // 更新日時
+}
+
+// 募集投稿を作成
+export const createGuestPost = async (post: Omit<GuestPost, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => {
+  const now = new Date().toISOString();
+  const postData = {
+    ...post,
+    status: 'active' as const,
+    createdAt: now,
+    updatedAt: now
+  };
+  
+  const docRef = doc(collection(db, "guest_posts"));
+  await setDoc(docRef, postData);
+  return docRef.id;
+};
+
+// 全ての募集投稿を取得（ガイド用一覧表示）
+export const getAllGuestPosts = async (): Promise<GuestPost[]> => {
+  const q = query(
+    collection(db, "guest_posts"),
+    where("status", "==", "active"),
+    orderBy("createdAt", "desc")
+  );
+  
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as GuestPost));
+};
+
+// 特定の観光客の募集投稿を取得
+export const getGuestPostsByUser = async (guestId: string): Promise<GuestPost[]> => {
+  const q = query(
+    collection(db, "guest_posts"),
+    where("guestId", "==", guestId),
+    orderBy("createdAt", "desc")
+  );
+  
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as GuestPost));
+};
+
+// 募集投稿を削除
+export const deleteGuestPost = async (postId: string) => {
+  const postRef = doc(db, "guest_posts", postId);
+  await deleteDoc(postRef);
+};
+
+// 募集投稿のステータスを更新
+export const updateGuestPostStatus = async (postId: string, status: 'active' | 'closed') => {
+  const postRef = doc(db, "guest_posts", postId);
+  await updateDoc(postRef, {
+    status,
+    updatedAt: new Date().toISOString()
+  });
+};
+
+// ガイドが募集投稿に応募
+export const applyToGuestPost = async (application: Omit<GuideApplication, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => {
+  const now = new Date().toISOString();
+  const applicationData = {
+    ...application,
+    status: 'pending' as RequestStatus,
+    createdAt: now,
+    updatedAt: now
+  };
+  
+  const docRef = doc(collection(db, "guide_applications"));
+  await setDoc(docRef, applicationData);
+  return docRef.id;
+};
+
+// 観光客が受け取った応募一覧を取得
+export const getApplicationsForGuest = async (guestId: string): Promise<GuideApplication[]> => {
+  const q = query(
+    collection(db, "guide_applications"),
+    where("guestId", "==", guestId),
+    orderBy("createdAt", "desc")
+  );
+  
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as GuideApplication));
+};
+
+// ガイドが送った応募一覧を取得
+export const getApplicationsForGuide = async (guideId: string): Promise<GuideApplication[]> => {
+  const q = query(
+    collection(db, "guide_applications"),
+    where("guideId", "==", guideId),
+    orderBy("createdAt", "desc")
+  );
+  
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as GuideApplication));
+};
+
+// 応募のステータスを更新
+export const updateApplicationStatus = async (applicationId: string, status: RequestStatus) => {
+  const applicationRef = doc(db, "guide_applications", applicationId);
+  await updateDoc(applicationRef, {
+    status,
+    updatedAt: new Date().toISOString()
+  });
+};
+
+// 応募を取り消し
+export const cancelApplication = async (applicationId: string) => {
+  const applicationRef = doc(db, "guide_applications", applicationId);
+  await deleteDoc(applicationRef);
+};
+
+// 特定の投稿詳細を取得
+export const getGuestPostById = async (postId: string): Promise<GuestPost | null> => {
+  const docRef = doc(db, "guest_posts", postId);
+  const docSnap = await getDoc(docRef);
+  return docSnap.exists() ? ({ id: docRef.id, ...docSnap.data() } as GuestPost) : null;
+};
+
+// ガイドが既に応募済みかチェック
+export const hasAlreadyApplied = async (guideId: string, postId: string): Promise<boolean> => {
+  const q = query(
+    collection(db, "guide_applications"),
+    where("guideId", "==", guideId),
+    where("postId", "==", postId),
+    where("status", "in", ["pending", "accepted"])
+  );
+  
+  const querySnapshot = await getDocs(q);
+  return !querySnapshot.empty;
+};
