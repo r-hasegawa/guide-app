@@ -236,20 +236,40 @@ export interface GuideApplication {
   updatedAt: string;         // 更新日時
 }
 
+// src/firebase/firestore.ts の createGuestPost 関数を修正
+
 // 募集投稿を作成
 export const createGuestPost = async (post: Omit<GuestPost, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => {
   const now = new Date().toISOString();
-  const postData = {
-    ...post,
+  
+  // undefined値を除去してからFirestoreに送信
+  const postData: any = {
+    guestId: post.guestId,
+    guestName: post.guestName,
+    title: post.title,
+    description: post.description,
+    preferredLanguages: post.preferredLanguages,
+    areas: post.areas,
     status: 'active' as const,
     createdAt: now,
     updatedAt: now
   };
   
+  // 任意フィールドはundefinedでない場合のみ追加
+  if (post.date !== undefined && post.date !== '') {
+    postData.date = post.date;
+  }
+  
+  if (post.budget !== undefined && post.budget !== '') {
+    postData.budget = post.budget;
+  }
+  
   const docRef = doc(collection(db, "guest_posts"));
+  console.log("Sending postData:", postData);
   await setDoc(docRef, postData);
   return docRef.id;
 };
+
 
 // 全ての募集投稿を取得（ガイド用一覧表示）
 export const getAllGuestPosts = async (): Promise<GuestPost[]> => {

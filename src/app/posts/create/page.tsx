@@ -89,12 +89,16 @@ export default function CreatePostPage() {
     }));
   };
 
+  // src/app/posts/create/page.tsx の handleSubmit 関数を修正
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user || !guestName) {
       return;
     }
+
+    console.log("currentUser UID:", user?.uid);
 
     if (!formData.title.trim() || !formData.description.trim()) {
       alert("タイトルと詳細は必須項目です。");
@@ -103,16 +107,26 @@ export default function CreatePostPage() {
 
     setSubmitting(true);
     try {
-      await createGuestPost({
+      // 任意フィールドは空文字の場合は送信しない
+      const postData: any = {
         guestId: user.uid,
         guestName: guestName,
         title: formData.title.trim(),
         description: formData.description.trim(),
         preferredLanguages: formData.preferredLanguages,
         areas: formData.areas,
-        date: formData.date || undefined,
-        budget: formData.budget || undefined
-      });
+      };
+
+      // 空でない場合のみ追加
+      if (formData.date.trim()) {
+        postData.date = formData.date.trim();
+      }
+      
+      if (formData.budget.trim()) {
+        postData.budget = formData.budget.trim();
+      }
+
+      await createGuestPost(postData);
 
       alert("募集を作成しました！");
       router.push("/posts");
