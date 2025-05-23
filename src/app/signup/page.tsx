@@ -7,11 +7,12 @@ import Link from 'next/link';
 import { 
   createUserWithEmailAndPassword, 
   signInWithPopup, 
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  getAdditionalUserInfo
 } from 'firebase/auth';
 import { auth } from '@/firebase/firebaseConfig';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from '@/firebase/firebaseConfig';
 
 export default function SignupPage() {
@@ -46,16 +47,50 @@ export default function SignupPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const saveUserBasicInfo = async (firebaseUser: any) => {
-    // ユーザーの基本情報を保存（ロールは含める）
-    const userProfile = {
-      email: firebaseUser.email || '',
-      createdAt: new Date().toISOString(),
-      role: role,
-      profileCompleted: false, // 詳細プロフィールは未完了
-    };
+  const saveUserBasicInfo = async (firebaseUser: any, isNewUser: boolean = true) => {
+    console.log('saveUserBasicInfo called', { uid: firebaseUser.uid, email: firebaseUser.email, role, isNewUser });
     
-    await setDoc(doc(db, "users", firebaseUser.uid), userProfile);
+    try {
+      // 既存ユーザーの場合、既にプロフィールが存在するかチェック
+      if (!isNewUser) {
+        const existingUserDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+        if (existingUserDoc.exists()) {
+          const existingData = existingUserDoc.data();
+          console.log('既存ユーザーデータ:', existingData);
+          
+          // 既にプロフィールが完了している場合は適切なページにリダイレクト
+          if (existingData.profileCompleted) {
+            if (existingData.role === 'guide') {
+              router.replace('/guides');
+            } else {
+              router.replace('/posts');
+            }
+            return;
+          }
+          // プロフィール未完了の場合はオンボーディングに進む
+          router.push('/profile/onboarding');
+          return;
+        }
+      }
+
+      // 新規ユーザーまたは既存ユーザーでもFirestoreにデータがない場合
+      const userProfile = {
+        email: firebaseUser.email || '',
+        createdAt: new Date().toISOString(),
+        role: role,
+        profileCompleted: false,
+      };
+      
+      console.log('Firestoreに保存するデータ:', userProfile);
+      await setDoc(doc(db, "users", firebaseUser.uid), userProfile);
+      console.log('Firestoreへの保存完了');
+      
+      // オンボーディングでプロフィール設定を行う
+      router.push('/profile/onboarding');
+    } catch (error) {
+      console.error('saveUserBasicInfo エラー:', error);
+      throw error;
+    }
   };
 
   const handleEmailSignup = async (e: React.FormEvent) => {
@@ -67,11 +102,9 @@ export default function SignupPage() {
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      console.log('Email signup success:', userCredential.user.uid);
       
-      await saveUserBasicInfo(userCredential.user);
-      
-      // オンボーディングでロール選択とプロフィール設定を行う
-      router.push('/profile/onboarding');
+      await saveUserBasicInfo(userCredential.user, true);
     } catch (err: any) {
       console.error('登録エラー:', err);
       if (err.code === 'auth/email-already-in-use') {
@@ -94,15 +127,33 @@ export default function SignupPage() {
     
     try {
       const provider = new GoogleAuthProvider();
+      // 既存アカウントとの関連付けを促すため
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
       const result = await signInWithPopup(auth, provider);
       
-      await saveUserBasicInfo(result.user);
+      // より正確な新規ユーザー判定
+      const additionalUserInfo = getAdditionalUserInfo(result);
+      const isNewUser = additionalUserInfo?.isNewUser ?? false;
       
-      // オンボーディングでロール選択とプロフィール設定を行う
-      router.push('/profile/onboarding');
+      console.log('Google signup success:', { 
+        uid: result.user.uid, 
+        email: result.user.email,
+        isNewUser: isNewUser
+      });
+      
+      await saveUserBasicInfo(result.user, isNewUser);
     } catch (err: any) {
       console.error('Google登録エラー:', err);
-      setError('Google登録に失敗しました。');
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('Googleログインがキャンセルされました。');
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('ポップアップがブロックされました。ポップアップを許可してください。');
+      } else {
+        setError('Google登録に失敗しました。もう一度お試しください。');
+      }
     } finally {
       setIsLoading(false);
     }

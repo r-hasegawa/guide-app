@@ -111,33 +111,39 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               <p className="text-gray-700">{post.guestName}</p>
             </div>
 
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">希望言語</h3>
-              <div className="flex flex-wrap gap-2">
-                {post.languages.map(language => (
-                  <span
-                    key={language}
-                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full"
-                  >
-                    {language}
-                  </span>
-                ))}
+            {/* 言語の表示 - 配列の存在チェック */}
+            {post.languages && post.languages.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold mb-2">希望言語</h3>
+                <div className="flex flex-wrap gap-2">
+                  {post.languages.map((language, index) => (
+                    <span
+                      key={`${language}-${index}`}
+                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full"
+                    >
+                      {language}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">希望エリア</h3>
-              <div className="flex flex-wrap gap-2">
-                {post.areas.map(area => (
-                  <span
-                    key={area}
-                    className="px-3 py-1 bg-green-100 text-green-800 rounded-full"
-                  >
-                    {area}
-                  </span>
-                ))}
+            {/* エリアの表示 - 配列の存在チェック */}
+            {post.areas && post.areas.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold mb-2">希望エリア</h3>
+                <div className="flex flex-wrap gap-2">
+                  {post.areas.map((area, index) => (
+                    <span
+                      key={`${area}-${index}`}
+                      className="px-3 py-1 bg-green-100 text-green-800 rounded-full"
+                    >
+                      {area}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {post.budget && (
               <div className="mb-4">
@@ -150,6 +156,13 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
               <div className="mb-4">
                 <h3 className="text-lg font-semibold mb-2">希望時間</h3>
                 <p className="text-gray-700">{post.duration}</p>
+              </div>
+            )}
+
+            {post.date && (
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold mb-2">希望日時</h3>
+                <p className="text-gray-700">{post.date}</p>
               </div>
             )}
 

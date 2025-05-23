@@ -9,7 +9,6 @@ import {
   getGuestPostsByUser,
   deleteGuestPost,
   getUserBasicInfo,
-  getGuestProfile,
   GuestPost
 } from "@/firebase/firestore";
 
@@ -40,16 +39,17 @@ export default function PostsPage() {
 
         // 役割に応じて投稿を取得
         if (userInfo.role === 'guide') {
-          // ガイドの場合：全ての募集投稿を表示
-          const allPosts = await getAllGuestPosts();
-          setPosts(allPosts);
+          // ガイドの場合：全ての募集投稿を表示（応募済みは除外）
+          const allPosts = await getAllGuestPosts(user.uid);
+          setPosts(allPosts || []); // undefined の場合は空配列にする
         } else if (userInfo.role === 'guest') {
           // 観光客の場合：自分の投稿のみを表示
           const myPosts = await getGuestPostsByUser(user.uid);
-          setPosts(myPosts);
+          setPosts(myPosts || []); // undefined の場合は空配列にする
         }
       } catch (error) {
         console.error("データの取得に失敗しました:", error);
+        setPosts([]); // エラー時も空配列にする
       } finally {
         setPageLoading(false);
       }
@@ -177,13 +177,14 @@ export default function PostsPage() {
               </p>
 
               <div className="space-y-2 mb-4">
-                {post.preferredLanguages.length > 0 && (
+                {/* 言語の表示 - 配列の存在チェック */}
+                {post.languages && post.languages.length > 0 && (
                   <div>
                     <p className="text-xs text-gray-600 mb-1">希望言語:</p>
                     <div className="flex flex-wrap gap-1">
-                      {post.preferredLanguages.map(language => (
+                      {post.languages.map((language, index) => (
                         <span
-                          key={language}
+                          key={`${language}-${index}`}
                           className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded"
                         >
                           {language}
@@ -193,13 +194,14 @@ export default function PostsPage() {
                   </div>
                 )}
 
-                {post.areas.length > 0 && (
+                {/* エリアの表示 - 配列の存在チェック */}
+                {post.areas && post.areas.length > 0 && (
                   <div>
                     <p className="text-xs text-gray-600 mb-1">希望エリア:</p>
                     <div className="flex flex-wrap gap-1">
-                      {post.areas.map(area => (
+                      {post.areas.map((area, index) => (
                         <span
-                          key={area}
+                          key={`${area}-${index}`}
                           className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded"
                         >
                           {area}
@@ -212,6 +214,12 @@ export default function PostsPage() {
                 {post.date && (
                   <p className="text-xs text-gray-600">
                     希望日時: {post.date}
+                  </p>
+                )}
+
+                {post.duration && (
+                  <p className="text-xs text-gray-600">
+                    希望時間: {post.duration}
                   </p>
                 )}
 

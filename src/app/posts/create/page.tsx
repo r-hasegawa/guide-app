@@ -21,10 +21,11 @@ export default function CreatePostPage() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    preferredLanguages: [] as string[],
+    languages: [] as string[], // preferredLanguages から languages に変更
     areas: [] as string[],
     date: "",
-    budget: ""
+    budget: "",
+    duration: "" // 追加
   });
 
   // 言語とエリアの選択肢
@@ -74,9 +75,9 @@ export default function CreatePostPage() {
   const toggleLanguage = (language: string) => {
     setFormData(prev => ({
       ...prev,
-      preferredLanguages: prev.preferredLanguages.includes(language)
-        ? prev.preferredLanguages.filter(lang => lang !== language)
-        : [...prev.preferredLanguages, language]
+      languages: prev.languages.includes(language)
+        ? prev.languages.filter(lang => lang !== language)
+        : [...prev.languages, language]
     }));
   };
 
@@ -89,16 +90,12 @@ export default function CreatePostPage() {
     }));
   };
 
-  // src/app/posts/create/page.tsx の handleSubmit 関数を修正
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user || !guestName) {
       return;
     }
-
-    console.log("currentUser UID:", user?.uid);
 
     if (!formData.title.trim() || !formData.description.trim()) {
       alert("タイトルと詳細は必須項目です。");
@@ -107,24 +104,17 @@ export default function CreatePostPage() {
 
     setSubmitting(true);
     try {
-      // 任意フィールドは空文字の場合は送信しない
-      const postData: any = {
+      const postData = {
         guestId: user.uid,
         guestName: guestName,
         title: formData.title.trim(),
         description: formData.description.trim(),
-        preferredLanguages: formData.preferredLanguages,
+        languages: formData.languages,
         areas: formData.areas,
+        date: formData.date.trim() || undefined,
+        budget: formData.budget.trim() || undefined,
+        duration: formData.duration.trim() || undefined,
       };
-
-      // 空でない場合のみ追加
-      if (formData.date.trim()) {
-        postData.date = formData.date.trim();
-      }
-      
-      if (formData.budget.trim()) {
-        postData.budget = formData.budget.trim();
-      }
 
       await createGuestPost(postData);
 
@@ -201,7 +191,7 @@ export default function CreatePostPage() {
                 type="button"
                 onClick={() => toggleLanguage(language)}
                 className={`px-3 py-2 rounded-lg text-sm transition ${
-                  formData.preferredLanguages.includes(language)
+                  formData.languages.includes(language)
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -247,6 +237,22 @@ export default function CreatePostPage() {
             value={formData.date}
             onChange={handleInputChange}
             placeholder="例: 2024年3月15日 10:00-17:00"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* 希望時間 */}
+        <div>
+          <label htmlFor="duration" className="block text-sm font-medium mb-2">
+            希望時間（任意）
+          </label>
+          <input
+            type="text"
+            id="duration"
+            name="duration"
+            value={formData.duration}
+            onChange={handleInputChange}
+            placeholder="例: 半日（4時間）、1日（8時間）"
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
