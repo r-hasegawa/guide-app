@@ -1,4 +1,4 @@
-import { db } from "./firebaseConfig";
+import { getFirestore } from "./firebaseConfig";
 
 // サーバーサイドでは何もしない
 const isServer = typeof window === 'undefined';
@@ -12,6 +12,7 @@ const loadFirestoreFunctions = async () => {
   }
 
   try {
+    // @ts-ignore - 型エラーを回避して動的インポート
     const firestoreModule = await import("firebase/firestore");
     firestoreFunctions = {
       doc: firestoreModule.doc,
@@ -106,418 +107,782 @@ export interface GuideApplication {
 // ========== ユーザー基本情報関連 ==========
 
 export const saveUserBasicInfo = async (uid: string, basicInfo: UserBasicInfo) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.setDoc || !functions.doc) return;
+  if (!functions.setDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  await functions.setDoc(functions.doc(db, "users", uid), basicInfo, { merge: true });
+  try {
+    await functions.setDoc(functions.doc(db, "users", uid), basicInfo, { merge: true });
+  } catch (error) {
+    console.error("Error saving user basic info:", error);
+    throw error;
+  }
 };
 
 export const getUserBasicInfo = async (uid: string): Promise<UserBasicInfo | null> => {
-  if (isServer || !db) return null;
+  if (isServer) return null;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return null;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.getDoc || !functions.doc) return null;
+  if (!functions.getDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return null;
+  }
   
-  const docRef = functions.doc(db, "users", uid);
-  const docSnap = await functions.getDoc(docRef);
-  return docSnap.exists() ? (docSnap.data() as UserBasicInfo) : null;
+  try {
+    const docRef = functions.doc(db, "users", uid);
+    const docSnap = await functions.getDoc(docRef);
+    return docSnap.exists() ? (docSnap.data() as UserBasicInfo) : null;
+  } catch (error) {
+    console.error("Error getting user basic info:", error);
+    return null;
+  }
 };
 
 // ========== プロフィール関連 ==========
 
 export const saveGuideProfile = async (uid: string, profile: GuideProfile) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.setDoc || !functions.doc || !functions.updateDoc) return;
+  if (!functions.setDoc || !functions.doc || !functions.updateDoc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  await functions.setDoc(functions.doc(db, "guide_profiles", uid), profile);
-  await functions.updateDoc(functions.doc(db, "users", uid), { 
-    role: "guide", 
-    profileCompleted: true 
-  });
+  try {
+    await functions.setDoc(functions.doc(db, "guide_profiles", uid), profile);
+    await functions.updateDoc(functions.doc(db, "users", uid), { 
+      role: "guide", 
+      profileCompleted: true 
+    });
+  } catch (error) {
+    console.error("Error saving guide profile:", error);
+    throw error;
+  }
 };
 
 export const getGuideProfile = async (uid: string): Promise<GuideProfile | null> => {
-  if (isServer || !db) return null;
+  if (isServer) return null;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return null;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.getDoc || !functions.doc) return null;
+  if (!functions.getDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return null;
+  }
   
-  const docRef = functions.doc(db, "guide_profiles", uid);
-  const docSnap = await functions.getDoc(docRef);
-  return docSnap.exists() ? (docSnap.data() as GuideProfile) : null;
+  try {
+    const docRef = functions.doc(db, "guide_profiles", uid);
+    const docSnap = await functions.getDoc(docRef);
+    return docSnap.exists() ? (docSnap.data() as GuideProfile) : null;
+  } catch (error) {
+    console.error("Error getting guide profile:", error);
+    return null;
+  }
 };
 
 export const saveGuestProfile = async (uid: string, profile: GuestProfile) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.setDoc || !functions.doc || !functions.updateDoc) return;
+  if (!functions.setDoc || !functions.doc || !functions.updateDoc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  await functions.setDoc(functions.doc(db, "guest_profiles", uid), profile);
-  await functions.updateDoc(functions.doc(db, "users", uid), { 
-    role: "guest", 
-    profileCompleted: true 
-  });
+  try {
+    await functions.setDoc(functions.doc(db, "guest_profiles", uid), profile);
+    await functions.updateDoc(functions.doc(db, "users", uid), { 
+      role: "guest", 
+      profileCompleted: true 
+    });
+  } catch (error) {
+    console.error("Error saving guest profile:", error);
+    throw error;
+  }
 };
 
 export const getGuestProfile = async (uid: string): Promise<GuestProfile | null> => {
-  if (isServer || !db) return null;
+  if (isServer) return null;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return null;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.getDoc || !functions.doc) return null;
+  if (!functions.getDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return null;
+  }
   
-  const docRef = functions.doc(db, "guest_profiles", uid);
-  const docSnap = await functions.getDoc(docRef);
-  return docSnap.exists() ? (docSnap.data() as GuestProfile) : null;
+  try {
+    const docRef = functions.doc(db, "guest_profiles", uid);
+    const docSnap = await functions.getDoc(docRef);
+    return docSnap.exists() ? (docSnap.data() as GuestProfile) : null;
+  } catch (error) {
+    console.error("Error getting guest profile:", error);
+    return null;
+  }
 };
 
 export const getAllGuideProfiles = async (): Promise<(GuideProfile & { id: string })[]> => {
-  if (isServer || !db) return [];
+  if (isServer) return [];
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return [];
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.getDocs || !functions.collection) return [];
+  if (!functions.getDocs || !functions.collection) {
+    console.error("Firestore functions not loaded");
+    return [];
+  }
   
-  const querySnapshot = await functions.getDocs(functions.collection(db, "guide_profiles"));
-  return querySnapshot.docs.map((doc: any) => ({
-    id: doc.id,
-    ...doc.data()
-  } as GuideProfile & { id: string }));
+  try {
+    const querySnapshot = await functions.getDocs(functions.collection(db, "guide_profiles"));
+    return querySnapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    } as GuideProfile & { id: string }));
+  } catch (error) {
+    console.error("Error getting all guide profiles:", error);
+    return [];
+  }
 };
 
 // ========== マッチングリクエスト関連（観光客→ガイド） ==========
 
 export const sendMatchingRequest = async (request: Omit<MatchingRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.setDoc || !functions.doc || !functions.collection) return;
+  if (!functions.setDoc || !functions.doc || !functions.collection) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  const now = new Date().toISOString();
-  const requestData = {
-    ...request,
-    status: 'pending' as RequestStatus,
-    createdAt: now,
-    updatedAt: now
-  };
-  
-  const docRef = functions.doc(functions.collection(db, "matching_requests"));
-  await functions.setDoc(docRef, requestData);
-  return docRef.id;
+  try {
+    const now = new Date().toISOString();
+    const requestData = {
+      ...request,
+      status: 'pending' as RequestStatus,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    const docRef = functions.doc(functions.collection(db, "matching_requests"));
+    await functions.setDoc(docRef, requestData);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error sending matching request:", error);
+    throw error;
+  }
 };
 
 export const getRequestsForGuide = async (guideId: string): Promise<MatchingRequest[]> => {
-  if (isServer || !db) return [];
+  if (isServer) return [];
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return [];
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) {
+    console.error("Firestore functions not loaded");
+    return [];
+  }
   
-  const q = functions.query(
-    functions.collection(db, "matching_requests"),
-    functions.where("guideId", "==", guideId),
-    functions.orderBy("createdAt", "desc")
-  );
-  
-  const querySnapshot = await functions.getDocs(q);
-  return querySnapshot.docs.map((doc: any) => ({
-    id: doc.id,
-    ...doc.data()
-  } as MatchingRequest));
+  try {
+    const q = functions.query(
+      functions.collection(db, "matching_requests"),
+      functions.where("guideId", "==", guideId),
+      functions.orderBy("createdAt", "desc")
+    );
+    
+    const querySnapshot = await functions.getDocs(q);
+    return querySnapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    } as MatchingRequest));
+  } catch (error) {
+    console.error("Error getting requests for guide:", error);
+    return [];
+  }
 };
 
 export const getRequestsForGuest = async (guestId: string): Promise<MatchingRequest[]> => {
-  if (isServer || !db) return [];
+  if (isServer) return [];
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return [];
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) {
+    console.error("Firestore functions not loaded");
+    return [];
+  }
   
-  const q = functions.query(
-    functions.collection(db, "matching_requests"),
-    functions.where("guestId", "==", guestId),
-    functions.orderBy("createdAt", "desc")
-  );
-  
-  const querySnapshot = await functions.getDocs(q);
-  return querySnapshot.docs.map((doc: any) => ({
-    id: doc.id,
-    ...doc.data()
-  } as MatchingRequest));
+  try {
+    const q = functions.query(
+      functions.collection(db, "matching_requests"),
+      functions.where("guestId", "==", guestId),
+      functions.orderBy("createdAt", "desc")
+    );
+    
+    const querySnapshot = await functions.getDocs(q);
+    return querySnapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    } as MatchingRequest));
+  } catch (error) {
+    console.error("Error getting requests for guest:", error);
+    return [];
+  }
 };
 
 export const updateRequestStatus = async (requestId: string, status: RequestStatus) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.updateDoc || !functions.doc) return;
+  if (!functions.updateDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  const requestRef = functions.doc(db, "matching_requests", requestId);
-  await functions.updateDoc(requestRef, {
-    status,
-    updatedAt: new Date().toISOString()
-  });
+  try {
+    const requestRef = functions.doc(db, "matching_requests", requestId);
+    await functions.updateDoc(requestRef, {
+      status,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error updating request status:", error);
+    throw error;
+  }
 };
 
 export const cancelMatchingRequest = async (requestId: string) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.deleteDoc || !functions.doc) return;
+  if (!functions.deleteDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  const requestRef = functions.doc(db, "matching_requests", requestId);
-  await functions.deleteDoc(requestRef);
+  try {
+    const requestRef = functions.doc(db, "matching_requests", requestId);
+    await functions.deleteDoc(requestRef);
+  } catch (error) {
+    console.error("Error canceling matching request:", error);
+    throw error;
+  }
 };
 
 export const getRequestedGuideIds = async (guestId: string): Promise<string[]> => {
-  if (isServer || !db) return [];
+  if (isServer) return [];
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return [];
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.query || !functions.collection || !functions.where || !functions.getDocs) return [];
+  if (!functions.query || !functions.collection || !functions.where || !functions.getDocs) {
+    console.error("Firestore functions not loaded");
+    return [];
+  }
   
-  const q = functions.query(
-    functions.collection(db, "matching_requests"),
-    functions.where("guestId", "==", guestId),
-    functions.where("status", "in", ["pending", "accepted"])
-  );
-  
-  const querySnapshot = await functions.getDocs(q);
-  return querySnapshot.docs.map((doc: any) => doc.data().guideId);
+  try {
+    const q = functions.query(
+      functions.collection(db, "matching_requests"),
+      functions.where("guestId", "==", guestId),
+      functions.where("status", "in", ["pending", "accepted"])
+    );
+    
+    const querySnapshot = await functions.getDocs(q);
+    return querySnapshot.docs.map((doc: any) => doc.data().guideId);
+  } catch (error) {
+    console.error("Error getting requested guide IDs:", error);
+    return [];
+  }
 };
 
 // ========== 募集投稿関連（観光客による） ==========
 
 export const createGuestPost = async (post: Omit<GuestPost, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.setDoc || !functions.doc || !functions.collection) return;
-  
-  const now = new Date().toISOString();
-  
-  const postData: any = {
-    guestId: post.guestId,
-    guestName: post.guestName,
-    title: post.title,
-    description: post.description,
-    languages: post.languages,
-    areas: post.areas,
-    status: 'active' as const,
-    createdAt: now,
-    updatedAt: now
-  };
-  
-  // 任意フィールドの追加
-  if (post.date && post.date.trim()) {
-    postData.date = post.date;
-  }
-  if (post.budget && post.budget.trim()) {
-    postData.budget = post.budget;
-  }
-  if (post.duration && post.duration.trim()) {
-    postData.duration = post.duration;
+  if (!functions.setDoc || !functions.doc || !functions.collection) {
+    console.error("Firestore functions not loaded");
+    return;
   }
   
-  const docRef = functions.doc(functions.collection(db, "guest_posts"));
-  await functions.setDoc(docRef, postData);
-  return docRef.id;
+  try {
+    const now = new Date().toISOString();
+    
+    const postData: any = {
+      guestId: post.guestId,
+      guestName: post.guestName,
+      title: post.title,
+      description: post.description,
+      languages: post.languages,
+      areas: post.areas,
+      status: 'active' as const,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    // 任意フィールドの追加
+    if (post.date && post.date.trim()) {
+      postData.date = post.date;
+    }
+    if (post.budget && post.budget.trim()) {
+      postData.budget = post.budget;
+    }
+    if (post.duration && post.duration.trim()) {
+      postData.duration = post.duration;
+    }
+    
+    const docRef = functions.doc(functions.collection(db, "guest_posts"));
+    await functions.setDoc(docRef, postData);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating guest post:", error);
+    throw error;
+  }
 };
 
 export const getAllGuestPosts = async (excludeAppliedByGuide?: string): Promise<GuestPost[]> => {
-  if (isServer || !db) return [];
+  if (isServer) return [];
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return [];
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
-  
-  const q = functions.query(
-    functions.collection(db, "guest_posts"),
-    functions.where("status", "==", "active"),
-    functions.orderBy("createdAt", "desc")
-  );
-  
-  const querySnapshot = await functions.getDocs(q);
-  let posts = querySnapshot.docs.map((doc: any) => ({
-    id: doc.id,
-    ...doc.data()
-  } as GuestPost));
-
-  // ガイドが応募済みの投稿を除外
-  if (excludeAppliedByGuide) {
-    const appliedPostIds = await getAppliedPostIds(excludeAppliedByGuide);
-    posts = posts.filter(post => !appliedPostIds.includes(post.id));
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) {
+    console.error("Firestore functions not loaded");
+    return [];
   }
+  
+  try {
+    const q = functions.query(
+      functions.collection(db, "guest_posts"),
+      functions.where("status", "==", "active"),
+      functions.orderBy("createdAt", "desc")
+    );
+    
+    const querySnapshot = await functions.getDocs(q);
+    let posts = querySnapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    } as GuestPost));
 
-  return posts;
+    // ガイドが応募済みの投稿を除外
+    if (excludeAppliedByGuide) {
+      const appliedPostIds = await getAppliedPostIds(excludeAppliedByGuide);
+      posts = posts.filter(post => !appliedPostIds.includes(post.id));
+    }
+
+    return posts;
+  } catch (error) {
+    console.error("Error getting all guest posts:", error);
+    return [];
+  }
 };
 
 export const getGuestPostsByUser = async (guestId: string): Promise<GuestPost[]> => {
-  if (isServer || !db) return [];
+  if (isServer) return [];
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return [];
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) {
+    console.error("Firestore functions not loaded");
+    return [];
+  }
   
-  const q = functions.query(
-    functions.collection(db, "guest_posts"),
-    functions.where("guestId", "==", guestId),
-    functions.orderBy("createdAt", "desc")
-  );
-  
-  const querySnapshot = await functions.getDocs(q);
-  return querySnapshot.docs.map((doc: any) => ({
-    id: doc.id,
-    ...doc.data()
-  } as GuestPost));
+  try {
+    const q = functions.query(
+      functions.collection(db, "guest_posts"),
+      functions.where("guestId", "==", guestId),
+      functions.orderBy("createdAt", "desc")
+    );
+    
+    const querySnapshot = await functions.getDocs(q);
+    return querySnapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    } as GuestPost));
+  } catch (error) {
+    console.error("Error getting guest posts by user:", error);
+    return [];
+  }
 };
 
 export const getGuestPost = async (postId: string): Promise<GuestPost | null> => {
-  if (isServer || !db) return null;
+  if (isServer) return null;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return null;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.getDoc || !functions.doc) return null;
+  if (!functions.getDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return null;
+  }
   
-  const docRef = functions.doc(db, "guest_posts", postId);
-  const docSnap = await functions.getDoc(docRef);
-  return docSnap.exists() ? ({ id: docRef.id, ...docSnap.data() } as GuestPost) : null;
+  try {
+    const docRef = functions.doc(db, "guest_posts", postId);
+    const docSnap = await functions.getDoc(docRef);
+    return docSnap.exists() ? ({ id: docRef.id, ...docSnap.data() } as GuestPost) : null;
+  } catch (error) {
+    console.error("Error getting guest post:", error);
+    return null;
+  }
 };
 
 export const deleteGuestPost = async (postId: string) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.deleteDoc || !functions.doc) return;
+  if (!functions.deleteDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  const postRef = functions.doc(db, "guest_posts", postId);
-  await functions.deleteDoc(postRef);
+  try {
+    const postRef = functions.doc(db, "guest_posts", postId);
+    await functions.deleteDoc(postRef);
+  } catch (error) {
+    console.error("Error deleting guest post:", error);
+    throw error;
+  }
 };
 
 export const updateGuestPostStatus = async (postId: string, status: 'active' | 'closed') => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.updateDoc || !functions.doc) return;
+  if (!functions.updateDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  const postRef = functions.doc(db, "guest_posts", postId);
-  await functions.updateDoc(postRef, {
-    status,
-    updatedAt: new Date().toISOString()
-  });
+  try {
+    const postRef = functions.doc(db, "guest_posts", postId);
+    await functions.updateDoc(postRef, {
+      status,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error updating guest post status:", error);
+    throw error;
+  }
 };
 
 // ========== ガイド応募関連（ガイド→観光客の募集投稿） ==========
 
 export const sendGuideApplication = async (application: Omit<GuideApplication, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.setDoc || !functions.doc || !functions.collection) return;
+  if (!functions.setDoc || !functions.doc || !functions.collection) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  const now = new Date().toISOString();
-  const applicationData = {
-    ...application,
-    status: 'pending' as RequestStatus,
-    createdAt: now,
-    updatedAt: now
-  };
-  
-  const docRef = functions.doc(functions.collection(db, "guide_applications"));
-  await functions.setDoc(docRef, applicationData);
-  return docRef.id;
+  try {
+    const now = new Date().toISOString();
+    const applicationData = {
+      ...application,
+      status: 'pending' as RequestStatus,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    const docRef = functions.doc(functions.collection(db, "guide_applications"));
+    await functions.setDoc(docRef, applicationData);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error sending guide application:", error);
+    throw error;
+  }
 };
 
 export const getApplicationsForGuest = async (guestId: string): Promise<GuideApplication[]> => {
-  if (isServer || !db) return [];
+  if (isServer) return [];
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return [];
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) {
+    console.error("Firestore functions not loaded");
+    return [];
+  }
   
-  const q = functions.query(
-    functions.collection(db, "guide_applications"),
-    functions.where("guestId", "==", guestId),
-    functions.orderBy("createdAt", "desc")
-  );
-  
-  const querySnapshot = await functions.getDocs(q);
-  return querySnapshot.docs.map((doc: any) => ({
-    id: doc.id,
-    ...doc.data()
-  } as GuideApplication));
+  try {
+    const q = functions.query(
+      functions.collection(db, "guide_applications"),
+      functions.where("guestId", "==", guestId),
+      functions.orderBy("createdAt", "desc")
+    );
+    
+    const querySnapshot = await functions.getDocs(q);
+    return querySnapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    } as GuideApplication));
+  } catch (error) {
+    console.error("Error getting applications for guest:", error);
+    return [];
+  }
 };
 
 export const getApplicationsForGuide = async (guideId: string): Promise<GuideApplication[]> => {
-  if (isServer || !db) return [];
+  if (isServer) return [];
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return [];
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) {
+    console.error("Firestore functions not loaded");
+    return [];
+  }
   
-  const q = functions.query(
-    functions.collection(db, "guide_applications"),
-    functions.where("guideId", "==", guideId),
-    functions.orderBy("createdAt", "desc")
-  );
-  
-  const querySnapshot = await functions.getDocs(q);
-  return querySnapshot.docs.map((doc: any) => ({
-    id: doc.id,
-    ...doc.data()
-  } as GuideApplication));
+  try {
+    const q = functions.query(
+      functions.collection(db, "guide_applications"),
+      functions.where("guideId", "==", guideId),
+      functions.orderBy("createdAt", "desc")
+    );
+    
+    const querySnapshot = await functions.getDocs(q);
+    return querySnapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data()
+    } as GuideApplication));
+  } catch (error) {
+    console.error("Error getting applications for guide:", error);
+    return [];
+  }
 };
 
 export const updateApplicationStatus = async (applicationId: string, status: RequestStatus) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.updateDoc || !functions.doc) return;
+  if (!functions.updateDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  const applicationRef = functions.doc(db, "guide_applications", applicationId);
-  await functions.updateDoc(applicationRef, {
-    status,
-    updatedAt: new Date().toISOString()
-  });
+  try {
+    const applicationRef = functions.doc(db, "guide_applications", applicationId);
+    await functions.updateDoc(applicationRef, {
+      status,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error updating application status:", error);
+    throw error;
+  }
 };
 
 export const cancelGuideApplication = async (applicationId: string) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.deleteDoc || !functions.doc) return;
+  if (!functions.deleteDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  const applicationRef = functions.doc(db, "guide_applications", applicationId);
-  await functions.deleteDoc(applicationRef);
+  try {
+    const applicationRef = functions.doc(db, "guide_applications", applicationId);
+    await functions.deleteDoc(applicationRef);
+  } catch (error) {
+    console.error("Error canceling guide application:", error);
+    throw error;
+  }
 };
 
 export const hasAlreadyApplied = async (guideId: string, postId: string): Promise<boolean> => {
-  if (isServer || !db) return false;
+  if (isServer) return false;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return false;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.query || !functions.collection || !functions.where || !functions.getDocs) return false;
+  if (!functions.query || !functions.collection || !functions.where || !functions.getDocs) {
+    console.error("Firestore functions not loaded");
+    return false;
+  }
   
-  const q = functions.query(
-    functions.collection(db, "guide_applications"),
-    functions.where("guideId", "==", guideId),
-    functions.where("postId", "==", postId),
-    functions.where("status", "in", ["pending", "accepted"])
-  );
-  
-  const querySnapshot = await functions.getDocs(q);
-  return !querySnapshot.empty;
+  try {
+    const q = functions.query(
+      functions.collection(db, "guide_applications"),
+      functions.where("guideId", "==", guideId),
+      functions.where("postId", "==", postId),
+      functions.where("status", "in", ["pending", "accepted"])
+    );
+    
+    const querySnapshot = await functions.getDocs(q);
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error("Error checking if already applied:", error);
+    return false;
+  }
 };
 
 // ガイドが応募済みの投稿IDリストを取得
 export const getAppliedPostIds = async (guideId: string): Promise<string[]> => {
-  if (isServer || !db) return [];
+  if (isServer) return [];
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return [];
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.query || !functions.collection || !functions.where || !functions.getDocs) return [];
+  if (!functions.query || !functions.collection || !functions.where || !functions.getDocs) {
+    console.error("Firestore functions not loaded");
+    return [];
+  }
   
-  const q = functions.query(
-    functions.collection(db, "guide_applications"),
-    functions.where("guideId", "==", guideId),
-    functions.where("status", "in", ["pending", "accepted"])
-  );
-  
-  const querySnapshot = await functions.getDocs(q);
-  return querySnapshot.docs.map((doc: any) => doc.data().postId);
+  try {
+    const q = functions.query(
+      functions.collection(db, "guide_applications"),
+      functions.where("guideId", "==", guideId),
+      functions.where("status", "in", ["pending", "accepted"])
+    );
+    
+    const querySnapshot = await functions.getDocs(q);
+    return querySnapshot.docs.map((doc: any) => doc.data().postId);
+  } catch (error) {
+    console.error("Error getting applied post IDs:", error);
+    return [];
+  }
 };
 
 // ========== 後方互換性のための関数（非推奨） ==========
@@ -528,22 +893,50 @@ export interface UserProfile {
 }
 
 export const saveUserProfile = async (uid: string, profile: UserProfile) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.setDoc || !functions.doc) return;
+  if (!functions.setDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  await functions.setDoc(functions.doc(db, "users", uid), profile, { merge: true });
+  try {
+    await functions.setDoc(functions.doc(db, "users", uid), profile, { merge: true });
+  } catch (error) {
+    console.error("Error saving user profile:", error);
+    throw error;
+  }
 };
 
 // アクティベーション状態を更新
 export const updateActivationStatus = async (uid: string, activated: boolean) => {
-  if (isServer || !db) return;
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
   
   const functions = await loadFirestoreFunctions();
-  if (!functions.updateDoc || !functions.doc) return;
+  if (!functions.updateDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
   
-  await functions.updateDoc(functions.doc(db, "users", uid), {
-    activated: activated
-  });
+  try {
+    await functions.updateDoc(functions.doc(db, "users", uid), {
+      activated: activated
+    });
+  } catch (error) {
+    console.error("Error updating activation status:", error);
+    throw error;
+  }
 };

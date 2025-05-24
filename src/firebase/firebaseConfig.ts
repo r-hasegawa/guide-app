@@ -13,40 +13,57 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Firestoreの初期化（クライアントサイドのみ）
+// Firestoreの初期化を完全に分離
 let db: any = null;
+let dbInitialized = false;
+let initializationPromise: Promise<any> | null = null;
 
-const initializeFirestore = () => {
-  // サーバーサイドでは初期化しない
+const getFirestore = async () => {
   if (typeof window === 'undefined') {
+    console.warn("Firestore called on server side");
     return null;
   }
 
-  if (db) {
+  // 既に初期化済みの場合
+  if (dbInitialized && db) {
     return db;
   }
 
-  try {
-    // 動的インポートを使用してクライアントサイドでのみFirestoreを初期化
-    import("firebase/firestore").then((firestoreModule) => {
-      if (firestoreModule && firestoreModule.getFirestore) {
-        db = firestoreModule.getFirestore(app);
-      }
-    }).catch((error) => {
-      console.error("Failed to load Firestore:", error);
-    });
-  } catch (error) {
-    console.error("Firestore initialization failed:", error);
+  // 初期化中の場合は同じPromiseを返す
+  if (initializationPromise) {
+    return await initializationPromise;
   }
 
+  // 新しい初期化を開始
+  initializationPromise = (async () => {
+    try {
+      console.log("Initializing Firestore...");
+      // @ts-ignore - 型エラーを回避
+      const { getFirestore: getFirestoreFunc } = await import("firebase/firestore");
+      db = getFirestoreFunc(app);
+      dbInitialized = true;
+      console.log("Firestore initialized successfully");
+      return db;
+    } catch (error) {
+      console.error("Failed to initialize Firestore:", error);
+      dbInitialized = false;
+      db = null;
+      return null;
+    } finally {
+      initializationPromise = null;
+    }
+  })();
+
+  return await initializationPromise;
+};
+
+// dbのgetterを提供
+const getDb = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
   return db;
 };
 
-// クライアントサイドの場合のみ初期化を実行
-if (typeof window !== 'undefined') {
-  initializeFirestore();
-}
-
-export { db };
+export { getDb as db, getFirestore };
 export const auth = getAuth(app);
-export { initializeFirestore };
