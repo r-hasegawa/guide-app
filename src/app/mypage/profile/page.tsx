@@ -28,15 +28,17 @@ export default function ProfileRouter() {
       if (!user || !userInfo) return;
 
       try {
-        let profile = null;
+        let profileExists = false;
         
         if (userInfo.role === 'guide') {
-          profile = await getGuideProfile(user.uid);
+          const guideProfile = await getGuideProfile(user.uid);
+          profileExists = !!guideProfile;
         } else {
-          profile = await getGuestProfile(user.uid);
+          const guestProfile = await getGuestProfile(user.uid);
+          profileExists = !!guestProfile;
         }
 
-        if (profile) {
+        if (profileExists) {
           // プロフィールが存在 → /mypage/profile/view に遷移
           router.push("/mypage/profile/view");
         } else {
