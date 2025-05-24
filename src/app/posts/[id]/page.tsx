@@ -241,7 +241,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                 この募集に応募するには、ガイドとしてログインしてください。
               </p>
               <button
-                onClick={() => router.push("/auth/login")}
+                onClick={() => router.push("/login")}
                 className="mt-3 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
               >
                 ログイン

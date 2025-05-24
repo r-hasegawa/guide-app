@@ -199,7 +199,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
                 このガイドにリクエストを送信するには、観光客としてログインしてください。
               </p>
               <button
-                onClick={() => router.push("/auth/login")}
+                onClick={() => router.push("/login")}
                 className="mt-3 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
               >
                 ログイン

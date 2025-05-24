@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
+import Link from "next/link"; // 追加
 import { 
   signInWithEmailAndPassword, 
   signInWithPopup, 
@@ -235,9 +236,9 @@ export default function LoginPage() {
 
       <div className="mt-6 text-center text-sm text-gray-500">
         アカウントをお持ちでない方は{" "}
-        <a href="/" className="text-blue-500 underline hover:text-blue-700">
+        <Link href="/" className="text-blue-500 underline hover:text-blue-700">
           新規登録
-        </a>
+        </Link>
       </div>
     </div>
   );
