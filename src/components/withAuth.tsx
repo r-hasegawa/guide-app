@@ -1,9 +1,9 @@
 "use client"
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { useEffect, ComponentType } from "react";
 
-export function withAuth<P>(WrappedComponent: React.ComponentType<P>) {
+export function withAuth<P extends Record<string, any>>(WrappedComponent: ComponentType<P>) {
   return function ProtectedComponent(props: P) {
     const { user, loading } = useAuthContext();
     const router = useRouter();

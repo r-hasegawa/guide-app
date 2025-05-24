@@ -2,26 +2,36 @@
 
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 import Link from "next/link";
 
 export default function HomePage() {
   const { user, userInfo, loading } = useAuthContext();
   const router = useRouter();
 
-  // SessionWrapperで統一的にリダイレクト処理されるため、
-  // ここでは個別のリダイレクト処理は不要
-  // ログイン済みでプロフィール・認証が完了している場合のみ、マイページへのリダイレクトを実行
-
-  // 完全にセットアップが完了したユーザーは自動的にマイページへ
-  if (!loading && user && userInfo && userInfo.profileCompleted && userInfo.activated) {
-    router.replace("/mypage");
-    return null; // リダイレクト中は何も表示しない
-  }
+  // useEffectを使用してレンダリング後にリダイレクトを実行
+  useEffect(() => {
+    // SessionWrapperで統一的にリダイレクト処理されるため、
+    // ここでは個別のリダイレクト処理は不要
+    // ログイン済みでプロフィール・認証が完了している場合のみ、マイページへのリダイレクトを実行
+    if (!loading && user && userInfo && userInfo.profileCompleted && userInfo.activated) {
+      router.replace("/mypage");
+    }
+  }, [loading, user, userInfo, router]);
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">読み込み中...</div>
+      </div>
+    );
+  }
+
+  // ログイン済みで完全にセットアップが完了したユーザーはリダイレクト中
+  if (!loading && user && userInfo && userInfo.profileCompleted && userInfo.activated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">リダイレクト中...</div>
       </div>
     );
   }
