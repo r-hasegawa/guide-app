@@ -10,8 +10,8 @@ import {
   GoogleAuthProvider,
   getAdditionalUserInfo
 } from "firebase/auth";
-import { auth, db } from "@/firebase/firebaseConfig";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth } from "@/firebase/firebaseConfig";
+import { getUserBasicInfo, saveUserBasicInfo } from "@/firebase/firestore";
 
 export default function LoginPage() {
   const { user, userInfo, loading } = useAuthContext();
@@ -40,22 +40,21 @@ export default function LoginPage() {
     
     try {
       // Firestoreでユーザーデータを確認
-      const userDocRef = doc(db, "users", firebaseUser.uid);
-      const userDocSnap = await getDoc(userDocRef);
+      const existingUserInfo = await getUserBasicInfo(firebaseUser.uid);
       
-      if (!userDocSnap.exists()) {
+      if (!existingUserInfo) {
         console.log('User document does not exist in Firestore, creating...');
         
         // Firestoreにユーザーデータが存在しない場合、基本情報を作成
         const userProfile = {
           email: firebaseUser.email || '',
           createdAt: new Date().toISOString(),
-          role: null, // オンボーディングで設定
+          role: null as any, // オンボーディングで設定
           profileCompleted: false,
           activated: firebaseUser.emailVerified || false, // メール認証状態を反映
         };
         
-        await setDoc(userDocRef, userProfile);
+        await saveUserBasicInfo(firebaseUser.uid, userProfile);
         console.log('Created basic user profile in Firestore');
       } else {
         console.log('User document exists in Firestore');
@@ -89,10 +88,9 @@ export default function LoginPage() {
       // ログイン成功後はuseEffectでリダイレクト処理される
       // ただし、Firestoreにデータがない場合に備えて少し待つ
       setTimeout(async () => {
-        const userDocRef = doc(db, "users", result.user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+        const existingUserInfo = await getUserBasicInfo(result.user.uid);
         
-        if (!userDocSnap.exists()) {
+        if (!existingUserInfo) {
           await handleMissingUserData(result.user);
         }
       }, 1500);
@@ -142,10 +140,9 @@ export default function LoginPage() {
         await handleMissingUserData(result.user);
       } else {
         // 既存ユーザーの場合、Firestoreにデータがあるかチェック
-        const userDocRef = doc(db, "users", result.user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+        const existingUserInfo = await getUserBasicInfo(result.user.uid);
         
-        if (!userDocSnap.exists()) {
+        if (!existingUserInfo) {
           console.log('Existing user but no Firestore data, creating...');
           await handleMissingUserData(result.user);
         } else {

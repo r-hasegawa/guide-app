@@ -11,9 +11,9 @@ import {
   getAdditionalUserInfo,
   sendEmailVerification
 } from 'firebase/auth';
-import { auth, db } from '@/firebase/firebaseConfig';
+import { auth } from '@/firebase/firebaseConfig';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { getUserBasicInfo, saveUserBasicInfo as saveUserToFirestore } from '@/firebase/firestore';
 
 export default function SignupPage() {
   const { user, loading } = useAuthContext();
@@ -53,9 +53,8 @@ export default function SignupPage() {
     try {
       // 既存ユーザーの場合、既にプロフィールが存在するかチェック
       if (!isNewUser) {
-        const existingUserDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-        if (existingUserDoc.exists()) {
-          const existingData = existingUserDoc.data();
+        const existingData = await getUserBasicInfo(firebaseUser.uid);
+        if (existingData) {
           console.log('既存ユーザーデータ:', existingData);
           
           // 既にプロフィールが完了している場合は適切なページにリダイレクト
@@ -77,14 +76,14 @@ export default function SignupPage() {
       const userProfile = {
         email: firebaseUser.email || '',
         createdAt: new Date().toISOString(),
-        role: role,
+        role: role as 'guide' | 'guest',
         profileCompleted: false,
         activated: firebaseUser.emailVerified || false, // メール認証状態を確認
       };
       
       console.log('Firestoreに保存するデータ:', userProfile);
       console.log('Selected role from URL:', role);
-      await setDoc(doc(db, "users", firebaseUser.uid), userProfile);
+      await saveUserToFirestore(firebaseUser.uid, userProfile);
       console.log('Firestoreへの保存完了');
       
       // メール認証が必要な場合
