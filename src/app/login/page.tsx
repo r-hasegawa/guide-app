@@ -10,9 +10,8 @@ import {
   GoogleAuthProvider,
   getAdditionalUserInfo
 } from "firebase/auth";
-import { auth } from "@/firebase/firebaseConfig";
+import { auth, db } from "@/firebase/firebaseConfig";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "@/firebase/firebaseConfig";
 
 export default function LoginPage() {
   const { user, userInfo, loading } = useAuthContext();

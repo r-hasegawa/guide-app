@@ -11,10 +11,9 @@ import {
   getAdditionalUserInfo,
   sendEmailVerification
 } from 'firebase/auth';
-import { auth } from '@/firebase/firebaseConfig';
+import { auth, db } from '@/firebase/firebaseConfig';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from '@/firebase/firebaseConfig';
 
 export default function SignupPage() {
   const { user, loading } = useAuthContext();
