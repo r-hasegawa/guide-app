@@ -1,0 +1,13 @@
+# すべてのクローラーを禁止
+User-agent: *
+Disallow: /
+
+# 特定のページやディレクトリのみ禁止する場合（例）
+# User-agent: *
+# Disallow: /admin/
+# Disallow: /api/
+# Disallow: /private/
+# Allow: /
+
+# サイトマップの指定（必要に応じて）
+# Sitemap: https://your-domain.com/sitemap.xml
