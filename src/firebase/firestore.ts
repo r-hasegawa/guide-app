@@ -12,8 +12,8 @@ const loadFirestoreFunctions = async () => {
   }
 
   try {
-    // @ts-ignore - 型エラーを回避して動的インポート
-    const firestoreModule = await import("firebase/firestore");
+    // @ts-ignore - 型エラーを完全に回避
+    const firestoreModule: any = await import("firebase/firestore");
     firestoreFunctions = {
       doc: firestoreModule.doc,
       getDoc: firestoreModule.getDoc,
