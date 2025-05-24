@@ -57,16 +57,18 @@ export default function OnboardingPage() {
       return;
     }
 
-    // userInfoが存在しない場合は待機
-    if (!loading && user && !userInfo) {
-      // 新規ユーザーの場合、まずロール選択から開始
-      setStep('role');
-    }
-
     // userInfoが存在してロールが設定されている場合はプロフィール設定へ
     if (!loading && user && userInfo && userInfo.role && !userInfo.profileCompleted) {
+      console.log('User has role:', userInfo.role, 'going to profile step');
       setSelectedRole(userInfo.role);
       setStep('profile');
+      return;
+    }
+
+    // userInfoが存在しない、またはロールが未設定の場合はロール選択から開始
+    if (!loading && user && (!userInfo || !userInfo.role)) {
+      console.log('User needs to select role, userInfo:', userInfo);
+      setStep('role');
     }
   }, [user, userInfo, loading, router]);
 

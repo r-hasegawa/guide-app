@@ -1,9 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, updateDoc} from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/firebase/firebaseConfig";
-import { getUserBasicInfo, UserBasicInfo } from "@/firebase/firestore";
+import {  getUserBasicInfo, 
+          UserBasicInfo,
+          updateActivationStatus
+        } from "@/firebase/firestore";
 
 type AuthContextType = {
   user: User | null;
@@ -46,6 +49,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (firebaseUser) {
         await fetchUserInfo(firebaseUser);
+        
+        // メール認証状態が変更された場合、Firestoreも更新
+        if (firebaseUser.emailVerified) {
+          try {
+            const userDoc = await getUserBasicInfo(firebaseUser.uid);
+            if (userDoc && !userDoc.activated) {
+              // Firestoreのactivatedフラグを更新
+              await updateActivationStatus(firebaseUser.uid, true);
+              // 情報を再取得
+              await fetchUserInfo(firebaseUser);
+            }
+          } catch (error) {
+            console.error("アクティベーション状態の更新エラー:", error);
+          }
+        }
       } else {
         setUserInfo(null);
       }

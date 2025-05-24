@@ -7,6 +7,7 @@ export interface UserBasicInfo {
   email: string;
   createdAt: string;
   profileCompleted: boolean;
+  activated: boolean; // 追加：アクティベーション状態
 }
 
 // ガイド用プロフィール
@@ -369,8 +370,9 @@ export const saveUserProfile = async (uid: string, profile: UserProfile) => {
   await setDoc(doc(db, "users", uid), profile, { merge: true });
 };
 
-export const getUserProfile = async (uid: string) => {
-  const docRef = doc(db, "users", uid);
-  const docSnap = await getDoc(docRef);
-  return docSnap.exists() ? docSnap.data() : null;
+// アクティベーション状態を更新
+export const updateActivationStatus = async (uid: string, activated: boolean) => {
+  await updateDoc(doc(db, "users", uid), {
+    activated: activated
+  });
 };

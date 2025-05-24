@@ -22,24 +22,16 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // SessionWrapperで統一的にリダイレクト処理されるため、
+  // ここでは成功時のリダイレクトのみ残す
   useEffect(() => {
-    if (!loading && user && userInfo) {
-      // ユーザー情報が存在するかチェック
-      if (userInfo.profileCompleted) {
-        // プロフィール完了済み → 役割に応じたページへ
-        if (userInfo.role === 'guide') {
-          router.replace("/guides");
-        } else {
-          router.replace("/posts");
-        }
+    // ログイン成功後の適切なページへのリダイレクト
+    if (!loading && user && userInfo && userInfo.profileCompleted && userInfo.activated) {
+      if (userInfo.role === 'guide') {
+        router.replace("/guides");
       } else {
-        // プロフィール未完了 → オンボーディングへ
-        router.replace("/profile/onboarding");
+        router.replace("/posts");
       }
-    } else if (!loading && user && !userInfo) {
-      // ログインしているがuserInfoがない場合（データ不整合）→ オンボーディングへ
-      console.log("User exists but userInfo is null, redirecting to onboarding");
-      router.replace("/profile/onboarding");
     }
   }, [user, userInfo, loading, router]);
 
@@ -60,6 +52,7 @@ export default function LoginPage() {
           createdAt: new Date().toISOString(),
           role: null, // オンボーディングで設定
           profileCompleted: false,
+          activated: firebaseUser.emailVerified || false, // メール認証状態を反映
         };
         
         await setDoc(userDocRef, userProfile);
@@ -68,10 +61,15 @@ export default function LoginPage() {
         console.log('User document exists in Firestore');
       }
       
-      // オンボーディングにリダイレクト（AuthContextが更新されるまで少し待つ）
-      setTimeout(() => {
-        router.replace("/profile/onboarding");
-      }, 1000);
+      // メール認証状態に応じたリダイレクト
+      if (!firebaseUser.emailVerified) {
+        router.replace("/activation/pending");
+      } else {
+        // オンボーディングにリダイレクト（AuthContextが更新されるまで少し待つ）
+        setTimeout(() => {
+          router.replace("/profile/onboarding");
+        }, 1000);
+      }
       
     } catch (error) {
       console.error('Error handling missing user data:', error);

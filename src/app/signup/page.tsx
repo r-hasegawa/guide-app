@@ -8,7 +8,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithPopup, 
   GoogleAuthProvider,
-  getAdditionalUserInfo
+  getAdditionalUserInfo,
+  sendEmailVerification
 } from 'firebase/auth';
 import { auth } from '@/firebase/firebaseConfig';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -79,14 +80,23 @@ export default function SignupPage() {
         createdAt: new Date().toISOString(),
         role: role,
         profileCompleted: false,
+        activated: firebaseUser.emailVerified || false, // メール認証状態を確認
       };
       
       console.log('Firestoreに保存するデータ:', userProfile);
+      console.log('Selected role from URL:', role);
       await setDoc(doc(db, "users", firebaseUser.uid), userProfile);
       console.log('Firestoreへの保存完了');
       
-      // オンボーディングでプロフィール設定を行う
-      router.push('/profile/onboarding');
+      // メール認証が必要な場合
+      if (!firebaseUser.emailVerified) {
+        router.push('/activation/pending');
+      } else {
+        // AuthContextの更新を待ってからリダイレクト
+        setTimeout(() => {
+          router.push('/profile/onboarding');
+        }, 1500);
+      }
     } catch (error) {
       console.error('saveUserBasicInfo エラー:', error);
       throw error;
@@ -103,6 +113,12 @@ export default function SignupPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       console.log('Email signup success:', userCredential.user.uid);
+      
+      // メール認証送信
+      await sendEmailVerification(userCredential.user, {
+        url: `${window.location.origin}/activation/complete`, // 認証完了後のリダイレクト先
+        handleCodeInApp: true
+      });
       
       await saveUserBasicInfo(userCredential.user, true);
     } catch (err: any) {
@@ -141,7 +157,8 @@ export default function SignupPage() {
       console.log('Google signup success:', { 
         uid: result.user.uid, 
         email: result.user.email,
-        isNewUser: isNewUser
+        isNewUser: isNewUser,
+        emailVerified: result.user.emailVerified
       });
       
       await saveUserBasicInfo(result.user, isNewUser);

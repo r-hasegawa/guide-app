@@ -137,7 +137,7 @@ export default function GuidesPage() {
       <h1 className="text-3xl font-bold mb-6">ガイド一覧</h1>
       
       {/* フィルターセクション */}
-      <div className="bg-gray-50 p-4 rounded-lg mb-6">
+      <div className="bg-white p-4 rounded-lg mb-6">
         <div className="flex flex-wrap gap-4 mb-4">
           {/* 言語フィルター */}
           <div>
@@ -192,13 +192,13 @@ export default function GuidesPage() {
       </div>
 
       {/* 検索結果数 */}
-      <p className="text-gray-600 mb-4">
+      <p className="mb-4">
         {filteredGuides.length}件のガイドが見つかりました
       </p>
 
       {/* ガイド一覧 */}
       {filteredGuides.length === 0 ? (
-        <div className="text-center py-10 text-gray-500">
+        <div className="text-center py-10">
           条件に合うガイドが見つかりませんでした
         </div>
       ) : (

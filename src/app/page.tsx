@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
 import Link from "next/link";
@@ -9,17 +8,15 @@ export default function HomePage() {
   const { user, userInfo, loading } = useAuthContext();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && user && userInfo) {
-      // プロフィールが完了している場合はマイページへ
-      if (userInfo.profileCompleted) {
-        router.replace("/mypage");
-      } else {
-        // プロフィールが未完了の場合はオンボーディングへ
-        router.replace("/profile/onboarding");
-      }
-    }
-  }, [user, userInfo, loading, router]);
+  // SessionWrapperで統一的にリダイレクト処理されるため、
+  // ここでは個別のリダイレクト処理は不要
+  // ログイン済みでプロフィール・認証が完了している場合のみ、マイページへのリダイレクトを実行
+
+  // 完全にセットアップが完了したユーザーは自動的にマイページへ
+  if (!loading && user && userInfo && userInfo.profileCompleted && userInfo.activated) {
+    router.replace("/mypage");
+    return null; // リダイレクト中は何も表示しない
+  }
 
   if (loading) {
     return (

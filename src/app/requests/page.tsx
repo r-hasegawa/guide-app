@@ -208,7 +208,7 @@ export default function RequestPage() {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">📩 申請管理</h1>
-        <p className="text-gray-600">ログインしてください。</p>
+        <p>ログインしてください。</p>
       </div>
     );
   }
@@ -226,7 +226,7 @@ export default function RequestPage() {
               className={`py-2 px-1 border-b-2 font-medium text-sm transition ${
                 activeTab === 'sent'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent hover:border-gray-300'
               }`}
             >
               送信した申請 ({getSentCount()})
@@ -236,7 +236,7 @@ export default function RequestPage() {
               className={`py-2 px-1 border-b-2 font-medium text-sm transition ${
                 activeTab === 'received'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent hover:border-gray-300'
               }`}
             >
               受信した申請 ({getReceivedCount()})
@@ -259,7 +259,7 @@ export default function RequestPage() {
               {/* マッチングリクエスト（観光客→ガイド） */}
               {sentMatchingRequests.length > 0 && (
                 <div>
-                  <h3 className="text-md font-medium text-gray-700 mb-3">ガイドへのリクエスト</h3>
+                  <h3 className="text-md font-medium mb-3">ガイドへのリクエスト</h3>
                   <div className="space-y-4">
                     {sentMatchingRequests.map((request) => (
                       <div key={request.id} className="bg-white border rounded-lg shadow-sm p-6">
@@ -302,7 +302,7 @@ export default function RequestPage() {
               {/* ガイド応募（ガイド→観光客の募集） */}
               {sentApplications.length > 0 && (
                 <div>
-                  <h3 className="text-md font-medium text-gray-700 mb-3">募集への応募</h3>
+                  <h3 className="text-md font-medium mb-3">募集への応募</h3>
                   <div className="space-y-4">
                     {sentApplications.map((application) => (
                       <div key={application.id} className="bg-white border rounded-lg shadow-sm p-6">
@@ -360,7 +360,7 @@ export default function RequestPage() {
               {/* マッチングリクエスト（観光客→ガイド） */}
               {receivedMatchingRequests.length > 0 && (
                 <div>
-                  <h3 className="text-md font-medium text-gray-700 mb-3">観光客からのリクエスト</h3>
+                  <h3 className="text-md font-medium mb-3">観光客からのリクエスト</h3>
                   <div className="space-y-4">
                     {receivedMatchingRequests.map((request) => (
                       <div key={request.id} className="bg-white border rounded-lg shadow-sm p-6">
@@ -412,7 +412,7 @@ export default function RequestPage() {
               {/* ガイド応募（ガイド→観光客の募集） */}
               {receivedApplications.length > 0 && (
                 <div>
-                  <h3 className="text-md font-medium text-gray-700 mb-3">募集への応募</h3>
+                  <h3 className="text-md font-medium mb-3">募集への応募</h3>
                   <div className="space-y-4">
                     {receivedApplications.map((application) => (
                       <div key={application.id} className="bg-white border rounded-lg shadow-sm p-6">

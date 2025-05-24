@@ -9,6 +9,8 @@ const PUBLIC_PATHS = [
   '/',        // トップページ
   '/login',   // ログインページ
   '/signup',  // サインアップページ
+  '/activation/pending',   // アクティベーション待機ページ
+  '/activation/complete',  // アクティベーション完了ページ
 ];
 
 // プロフィールオンボーディングページのパスを定義します。
@@ -26,21 +28,40 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    console.log('SessionWrapper check:', { 
+      user: !!user, 
+      userInfo: userInfo,
+      pathname,
+      profileCompleted: userInfo?.profileCompleted,
+      activated: userInfo?.activated
+    });
+
     // --- 未ログイン状態のリダイレクトロジック ---
     // ユーザーがログインしておらず (userがnull)、かつ現在のパスが公開パスリストに含まれていない場合
     // ログインページにリダイレクトします。
     if (!user && !PUBLIC_PATHS.includes(pathname)) {
+      console.log('Redirecting to login: not authenticated');
       router.replace('/login'); // replaceを使用することで、ブラウザの履歴に残りません。
       return;
     }
 
-    // --- プロフィール未完了のリダイレクトロジック (ログイン済みユーザー向け) ---
-    // ユーザーがログインしており (userがnullではない)、userInfoが利用可能で、
-    // プロフィールが未完了 (profileCompletedがfalse) かつ、現在のパスがオンボーディングページではない場合
-    // オンボーディングページにリダイレクトします。
-    // これにより、プロフィールが未完了のユーザーはオンボーディングを完了するまで他のページにアクセスできません。
+    // ==========================================
+    // ログイン済みユーザーのリダイレクト優先順位
+    // ==========================================
+    
+    // 【最優先】プロフィール未完了 → オンボーディング
+    // アクティベーション状態に関係なく、プロフィール設定を最優先
     if (user && userInfo && !userInfo.profileCompleted && pathname !== ONBOARDING_PATH) {
+      console.log('Redirecting to onboarding: profile incomplete');
       router.replace(ONBOARDING_PATH);
+      return;
+    }
+
+    // 【次の優先】アクティベーション未完了 → 認証待機ページ
+    // プロフィール完了済みの場合のみチェック
+    if (user && userInfo && userInfo.profileCompleted && !userInfo.activated && pathname !== '/activation/pending') {
+      console.log('Redirecting to activation pending: not activated');
+      router.replace('/activation/pending');
       return;
     }
 
@@ -49,7 +70,8 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
     // 現在のパスがオンボーディングページである場合
     // マイページにリダイレクトします。
     // これにより、すでにオンボーディングを完了しているユーザーが再度オンボーディングページにアクセスするのを防ぎます。
-    if (user && userInfo && userInfo.profileCompleted && pathname === ONBOARDING_PATH) {
+    if (user && userInfo && userInfo.profileCompleted && userInfo.activated && pathname === ONBOARDING_PATH) {
+      console.log('Redirecting from onboarding to mypage: already completed');
       router.replace('/mypage');
       return;
     }
@@ -59,8 +81,6 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
   // 認証状態の確認中は、ローディングメッセージを表示します。
   if (loading) {
     return (
-      // ここも特定のフォントクラスを適用しないように調整
-      // 例: `font-sans` など、元のCSSで設定されているデフォルトフォントに依存させる
       <div className="flex min-h-[calc(100vh-theme(spacing.14)*2)] items-center justify-center">
         <div className="text-center">認証状態を確認中...</div>
       </div>
