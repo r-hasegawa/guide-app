@@ -13,40 +13,40 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Firestoreを条件付きで初期化
+// Firestoreの初期化（クライアントサイドのみ）
 let db: any = null;
 
-// Firebaseのバージョンに応じて異なる方法で初期化を試行
-const initFirestore = () => {
-  try {
-    // まず通常のインポートを試行
-    const firestore = require("firebase/firestore");
-    if (firestore && firestore.getFirestore) {
-      db = firestore.getFirestore(app);
-      return true;
-    }
-  } catch (error) {
-    console.warn("Standard Firestore import failed:", error);
+const initializeFirestore = () => {
+  // サーバーサイドでは初期化しない
+  if (typeof window === 'undefined') {
+    return null;
   }
-  
-  try {
-    // 代替インポート方法を試行
-    const firestore = require("firebase/firestore/lite");
-    if (firestore && firestore.getFirestore) {
-      db = firestore.getFirestore(app);
-      return true;
-    }
-  } catch (error) {
-    console.warn("Lite Firestore import failed:", error);
+
+  if (db) {
+    return db;
   }
-  
-  return false;
+
+  try {
+    // 動的インポートを使用してクライアントサイドでのみFirestoreを初期化
+    import("firebase/firestore").then((firestoreModule) => {
+      if (firestoreModule && firestoreModule.getFirestore) {
+        db = firestoreModule.getFirestore(app);
+      }
+    }).catch((error) => {
+      console.error("Failed to load Firestore:", error);
+    });
+  } catch (error) {
+    console.error("Firestore initialization failed:", error);
+  }
+
+  return db;
 };
 
-// 初期化を実行
-if (!initFirestore()) {
-  console.error("Failed to initialize Firestore. Please check your Firebase installation.");
+// クライアントサイドの場合のみ初期化を実行
+if (typeof window !== 'undefined') {
+  initializeFirestore();
 }
 
 export { db };
 export const auth = getAuth(app);
+export { initializeFirestore };

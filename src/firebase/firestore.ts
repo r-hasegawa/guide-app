@@ -1,25 +1,36 @@
-// Firestore関数を動的にインポート
+import { db } from "./firebaseConfig";
+
+// サーバーサイドでは何もしない
+const isServer = typeof window === 'undefined';
+
+// Firestore関数を動的にロード
 let firestoreFunctions: any = {};
 
-try {
-  const firestoreModule = require("firebase/firestore");
-  firestoreFunctions = {
-    doc: firestoreModule.doc,
-    getDoc: firestoreModule.getDoc,
-    setDoc: firestoreModule.setDoc,
-    updateDoc: firestoreModule.updateDoc,
-    collection: firestoreModule.collection,
-    query: firestoreModule.query,
-    where: firestoreModule.where,
-    orderBy: firestoreModule.orderBy,
-    getDocs: firestoreModule.getDocs,
-    deleteDoc: firestoreModule.deleteDoc
-  };
-} catch (error) {
-  console.error("Firestore functions import error:", error);
-}
+const loadFirestoreFunctions = async () => {
+  if (isServer || firestoreFunctions.doc) {
+    return firestoreFunctions;
+  }
 
-import { db } from "./firebaseConfig";
+  try {
+    const firestoreModule = await import("firebase/firestore");
+    firestoreFunctions = {
+      doc: firestoreModule.doc,
+      getDoc: firestoreModule.getDoc,
+      setDoc: firestoreModule.setDoc,
+      updateDoc: firestoreModule.updateDoc,
+      collection: firestoreModule.collection,
+      query: firestoreModule.query,
+      where: firestoreModule.where,
+      orderBy: firestoreModule.orderBy,
+      getDocs: firestoreModule.getDocs,
+      deleteDoc: firestoreModule.deleteDoc
+    };
+  } catch (error) {
+    console.error("Failed to load Firestore functions:", error);
+  }
+
+  return firestoreFunctions;
+};
 
 // ユーザーの基本情報（ロール情報含む）
 export interface UserBasicInfo {
@@ -27,7 +38,7 @@ export interface UserBasicInfo {
   email: string;
   createdAt: string;
   profileCompleted: boolean;
-  activated: boolean; // 追加：アクティベーション状態
+  activated: boolean;
 }
 
 // ガイド用プロフィール
@@ -68,11 +79,11 @@ export interface GuestPost {
   guestName: string;
   title: string;
   description: string;
-  languages: string[]; // preferredLanguages から languages に統一
+  languages: string[];
   areas: string[];
   date?: string;
   budget?: string;
-  duration?: string; // 追加：希望時間
+  duration?: string;
   status: 'active' | 'closed';
   createdAt: string;
   updatedAt: string;
@@ -95,54 +106,82 @@ export interface GuideApplication {
 // ========== ユーザー基本情報関連 ==========
 
 export const saveUserBasicInfo = async (uid: string, basicInfo: UserBasicInfo) => {
-  if (!firestoreFunctions.setDoc || !firestoreFunctions.doc) return;
-  await firestoreFunctions.setDoc(firestoreFunctions.doc(db, "users", uid), basicInfo, { merge: true });
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.setDoc || !functions.doc) return;
+  
+  await functions.setDoc(functions.doc(db, "users", uid), basicInfo, { merge: true });
 };
 
 export const getUserBasicInfo = async (uid: string): Promise<UserBasicInfo | null> => {
-  if (!firestoreFunctions.getDoc || !firestoreFunctions.doc) return null;
-  const docRef = firestoreFunctions.doc(db, "users", uid);
-  const docSnap = await firestoreFunctions.getDoc(docRef);
+  if (isServer || !db) return null;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.getDoc || !functions.doc) return null;
+  
+  const docRef = functions.doc(db, "users", uid);
+  const docSnap = await functions.getDoc(docRef);
   return docSnap.exists() ? (docSnap.data() as UserBasicInfo) : null;
 };
 
 // ========== プロフィール関連 ==========
 
 export const saveGuideProfile = async (uid: string, profile: GuideProfile) => {
-  if (!firestoreFunctions.setDoc || !firestoreFunctions.doc || !firestoreFunctions.updateDoc) return;
-  await firestoreFunctions.setDoc(firestoreFunctions.doc(db, "guide_profiles", uid), profile);
-  await firestoreFunctions.updateDoc(firestoreFunctions.doc(db, "users", uid), { 
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.setDoc || !functions.doc || !functions.updateDoc) return;
+  
+  await functions.setDoc(functions.doc(db, "guide_profiles", uid), profile);
+  await functions.updateDoc(functions.doc(db, "users", uid), { 
     role: "guide", 
     profileCompleted: true 
   });
 };
 
 export const getGuideProfile = async (uid: string): Promise<GuideProfile | null> => {
-  if (!firestoreFunctions.getDoc || !firestoreFunctions.doc) return null;
-  const docRef = firestoreFunctions.doc(db, "guide_profiles", uid);
-  const docSnap = await firestoreFunctions.getDoc(docRef);
+  if (isServer || !db) return null;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.getDoc || !functions.doc) return null;
+  
+  const docRef = functions.doc(db, "guide_profiles", uid);
+  const docSnap = await functions.getDoc(docRef);
   return docSnap.exists() ? (docSnap.data() as GuideProfile) : null;
 };
 
 export const saveGuestProfile = async (uid: string, profile: GuestProfile) => {
-  if (!firestoreFunctions.setDoc || !firestoreFunctions.doc || !firestoreFunctions.updateDoc) return;
-  await firestoreFunctions.setDoc(firestoreFunctions.doc(db, "guest_profiles", uid), profile);
-  await firestoreFunctions.updateDoc(firestoreFunctions.doc(db, "users", uid), { 
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.setDoc || !functions.doc || !functions.updateDoc) return;
+  
+  await functions.setDoc(functions.doc(db, "guest_profiles", uid), profile);
+  await functions.updateDoc(functions.doc(db, "users", uid), { 
     role: "guest", 
     profileCompleted: true 
   });
 };
 
 export const getGuestProfile = async (uid: string): Promise<GuestProfile | null> => {
-  if (!firestoreFunctions.getDoc || !firestoreFunctions.doc) return null;
-  const docRef = firestoreFunctions.doc(db, "guest_profiles", uid);
-  const docSnap = await firestoreFunctions.getDoc(docRef);
+  if (isServer || !db) return null;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.getDoc || !functions.doc) return null;
+  
+  const docRef = functions.doc(db, "guest_profiles", uid);
+  const docSnap = await functions.getDoc(docRef);
   return docSnap.exists() ? (docSnap.data() as GuestProfile) : null;
 };
 
 export const getAllGuideProfiles = async (): Promise<(GuideProfile & { id: string })[]> => {
-  if (!firestoreFunctions.getDocs || !firestoreFunctions.collection) return [];
-  const querySnapshot = await firestoreFunctions.getDocs(firestoreFunctions.collection(db, "guide_profiles"));
+  if (isServer || !db) return [];
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.getDocs || !functions.collection) return [];
+  
+  const querySnapshot = await functions.getDocs(functions.collection(db, "guide_profiles"));
   return querySnapshot.docs.map((doc: any) => ({
     id: doc.id,
     ...doc.data()
@@ -152,7 +191,11 @@ export const getAllGuideProfiles = async (): Promise<(GuideProfile & { id: strin
 // ========== マッチングリクエスト関連（観光客→ガイド） ==========
 
 export const sendMatchingRequest = async (request: Omit<MatchingRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
-  if (!firestoreFunctions.setDoc || !firestoreFunctions.doc || !firestoreFunctions.collection) return;
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.setDoc || !functions.doc || !functions.collection) return;
+  
   const now = new Date().toISOString();
   const requestData = {
     ...request,
@@ -161,20 +204,24 @@ export const sendMatchingRequest = async (request: Omit<MatchingRequest, 'id' | 
     updatedAt: now
   };
   
-  const docRef = firestoreFunctions.doc(firestoreFunctions.collection(db, "matching_requests"));
-  await firestoreFunctions.setDoc(docRef, requestData);
+  const docRef = functions.doc(functions.collection(db, "matching_requests"));
+  await functions.setDoc(docRef, requestData);
   return docRef.id;
 };
 
 export const getRequestsForGuide = async (guideId: string): Promise<MatchingRequest[]> => {
-  if (!firestoreFunctions.query || !firestoreFunctions.collection || !firestoreFunctions.where || !firestoreFunctions.orderBy || !firestoreFunctions.getDocs) return [];
-  const q = firestoreFunctions.query(
-    firestoreFunctions.collection(db, "matching_requests"),
-    firestoreFunctions.where("guideId", "==", guideId),
-    firestoreFunctions.orderBy("createdAt", "desc")
+  if (isServer || !db) return [];
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
+  
+  const q = functions.query(
+    functions.collection(db, "matching_requests"),
+    functions.where("guideId", "==", guideId),
+    functions.orderBy("createdAt", "desc")
   );
   
-  const querySnapshot = await firestoreFunctions.getDocs(q);
+  const querySnapshot = await functions.getDocs(q);
   return querySnapshot.docs.map((doc: any) => ({
     id: doc.id,
     ...doc.data()
@@ -182,14 +229,18 @@ export const getRequestsForGuide = async (guideId: string): Promise<MatchingRequ
 };
 
 export const getRequestsForGuest = async (guestId: string): Promise<MatchingRequest[]> => {
-  if (!firestoreFunctions.query || !firestoreFunctions.collection || !firestoreFunctions.where || !firestoreFunctions.orderBy || !firestoreFunctions.getDocs) return [];
-  const q = firestoreFunctions.query(
-    firestoreFunctions.collection(db, "matching_requests"),
-    firestoreFunctions.where("guestId", "==", guestId),
-    firestoreFunctions.orderBy("createdAt", "desc")
+  if (isServer || !db) return [];
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
+  
+  const q = functions.query(
+    functions.collection(db, "matching_requests"),
+    functions.where("guestId", "==", guestId),
+    functions.orderBy("createdAt", "desc")
   );
   
-  const querySnapshot = await firestoreFunctions.getDocs(q);
+  const querySnapshot = await functions.getDocs(q);
   return querySnapshot.docs.map((doc: any) => ({
     id: doc.id,
     ...doc.data()
@@ -197,36 +248,52 @@ export const getRequestsForGuest = async (guestId: string): Promise<MatchingRequ
 };
 
 export const updateRequestStatus = async (requestId: string, status: RequestStatus) => {
-  if (!firestoreFunctions.updateDoc || !firestoreFunctions.doc) return;
-  const requestRef = firestoreFunctions.doc(db, "matching_requests", requestId);
-  await firestoreFunctions.updateDoc(requestRef, {
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.updateDoc || !functions.doc) return;
+  
+  const requestRef = functions.doc(db, "matching_requests", requestId);
+  await functions.updateDoc(requestRef, {
     status,
     updatedAt: new Date().toISOString()
   });
 };
 
 export const cancelMatchingRequest = async (requestId: string) => {
-  if (!firestoreFunctions.deleteDoc || !firestoreFunctions.doc) return;
-  const requestRef = firestoreFunctions.doc(db, "matching_requests", requestId);
-  await firestoreFunctions.deleteDoc(requestRef);
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.deleteDoc || !functions.doc) return;
+  
+  const requestRef = functions.doc(db, "matching_requests", requestId);
+  await functions.deleteDoc(requestRef);
 };
 
 export const getRequestedGuideIds = async (guestId: string): Promise<string[]> => {
-  if (!firestoreFunctions.query || !firestoreFunctions.collection || !firestoreFunctions.where || !firestoreFunctions.getDocs) return [];
-  const q = firestoreFunctions.query(
-    firestoreFunctions.collection(db, "matching_requests"),
-    firestoreFunctions.where("guestId", "==", guestId),
-    firestoreFunctions.where("status", "in", ["pending", "accepted"])
+  if (isServer || !db) return [];
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.query || !functions.collection || !functions.where || !functions.getDocs) return [];
+  
+  const q = functions.query(
+    functions.collection(db, "matching_requests"),
+    functions.where("guestId", "==", guestId),
+    functions.where("status", "in", ["pending", "accepted"])
   );
   
-  const querySnapshot = await firestoreFunctions.getDocs(q);
+  const querySnapshot = await functions.getDocs(q);
   return querySnapshot.docs.map((doc: any) => doc.data().guideId);
 };
 
 // ========== 募集投稿関連（観光客による） ==========
 
 export const createGuestPost = async (post: Omit<GuestPost, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
-  if (!firestoreFunctions.setDoc || !firestoreFunctions.doc || !firestoreFunctions.collection) return;
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.setDoc || !functions.doc || !functions.collection) return;
+  
   const now = new Date().toISOString();
   
   const postData: any = {
@@ -252,20 +319,24 @@ export const createGuestPost = async (post: Omit<GuestPost, 'id' | 'status' | 'c
     postData.duration = post.duration;
   }
   
-  const docRef = firestoreFunctions.doc(firestoreFunctions.collection(db, "guest_posts"));
-  await firestoreFunctions.setDoc(docRef, postData);
+  const docRef = functions.doc(functions.collection(db, "guest_posts"));
+  await functions.setDoc(docRef, postData);
   return docRef.id;
 };
 
 export const getAllGuestPosts = async (excludeAppliedByGuide?: string): Promise<GuestPost[]> => {
-  if (!firestoreFunctions.query || !firestoreFunctions.collection || !firestoreFunctions.where || !firestoreFunctions.orderBy || !firestoreFunctions.getDocs) return [];
-  const q = firestoreFunctions.query(
-    firestoreFunctions.collection(db, "guest_posts"),
-    firestoreFunctions.where("status", "==", "active"),
-    firestoreFunctions.orderBy("createdAt", "desc")
+  if (isServer || !db) return [];
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
+  
+  const q = functions.query(
+    functions.collection(db, "guest_posts"),
+    functions.where("status", "==", "active"),
+    functions.orderBy("createdAt", "desc")
   );
   
-  const querySnapshot = await firestoreFunctions.getDocs(q);
+  const querySnapshot = await functions.getDocs(q);
   let posts = querySnapshot.docs.map((doc: any) => ({
     id: doc.id,
     ...doc.data()
@@ -281,14 +352,18 @@ export const getAllGuestPosts = async (excludeAppliedByGuide?: string): Promise<
 };
 
 export const getGuestPostsByUser = async (guestId: string): Promise<GuestPost[]> => {
-  if (!firestoreFunctions.query || !firestoreFunctions.collection || !firestoreFunctions.where || !firestoreFunctions.orderBy || !firestoreFunctions.getDocs) return [];
-  const q = firestoreFunctions.query(
-    firestoreFunctions.collection(db, "guest_posts"),
-    firestoreFunctions.where("guestId", "==", guestId),
-    firestoreFunctions.orderBy("createdAt", "desc")
+  if (isServer || !db) return [];
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
+  
+  const q = functions.query(
+    functions.collection(db, "guest_posts"),
+    functions.where("guestId", "==", guestId),
+    functions.orderBy("createdAt", "desc")
   );
   
-  const querySnapshot = await firestoreFunctions.getDocs(q);
+  const querySnapshot = await functions.getDocs(q);
   return querySnapshot.docs.map((doc: any) => ({
     id: doc.id,
     ...doc.data()
@@ -296,22 +371,34 @@ export const getGuestPostsByUser = async (guestId: string): Promise<GuestPost[]>
 };
 
 export const getGuestPost = async (postId: string): Promise<GuestPost | null> => {
-  if (!firestoreFunctions.getDoc || !firestoreFunctions.doc) return null;
-  const docRef = firestoreFunctions.doc(db, "guest_posts", postId);
-  const docSnap = await firestoreFunctions.getDoc(docRef);
+  if (isServer || !db) return null;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.getDoc || !functions.doc) return null;
+  
+  const docRef = functions.doc(db, "guest_posts", postId);
+  const docSnap = await functions.getDoc(docRef);
   return docSnap.exists() ? ({ id: docRef.id, ...docSnap.data() } as GuestPost) : null;
 };
 
 export const deleteGuestPost = async (postId: string) => {
-  if (!firestoreFunctions.deleteDoc || !firestoreFunctions.doc) return;
-  const postRef = firestoreFunctions.doc(db, "guest_posts", postId);
-  await firestoreFunctions.deleteDoc(postRef);
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.deleteDoc || !functions.doc) return;
+  
+  const postRef = functions.doc(db, "guest_posts", postId);
+  await functions.deleteDoc(postRef);
 };
 
 export const updateGuestPostStatus = async (postId: string, status: 'active' | 'closed') => {
-  if (!firestoreFunctions.updateDoc || !firestoreFunctions.doc) return;
-  const postRef = firestoreFunctions.doc(db, "guest_posts", postId);
-  await firestoreFunctions.updateDoc(postRef, {
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.updateDoc || !functions.doc) return;
+  
+  const postRef = functions.doc(db, "guest_posts", postId);
+  await functions.updateDoc(postRef, {
     status,
     updatedAt: new Date().toISOString()
   });
@@ -320,7 +407,11 @@ export const updateGuestPostStatus = async (postId: string, status: 'active' | '
 // ========== ガイド応募関連（ガイド→観光客の募集投稿） ==========
 
 export const sendGuideApplication = async (application: Omit<GuideApplication, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
-  if (!firestoreFunctions.setDoc || !firestoreFunctions.doc || !firestoreFunctions.collection) return;
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.setDoc || !functions.doc || !functions.collection) return;
+  
   const now = new Date().toISOString();
   const applicationData = {
     ...application,
@@ -329,20 +420,24 @@ export const sendGuideApplication = async (application: Omit<GuideApplication, '
     updatedAt: now
   };
   
-  const docRef = firestoreFunctions.doc(firestoreFunctions.collection(db, "guide_applications"));
-  await firestoreFunctions.setDoc(docRef, applicationData);
+  const docRef = functions.doc(functions.collection(db, "guide_applications"));
+  await functions.setDoc(docRef, applicationData);
   return docRef.id;
 };
 
 export const getApplicationsForGuest = async (guestId: string): Promise<GuideApplication[]> => {
-  if (!firestoreFunctions.query || !firestoreFunctions.collection || !firestoreFunctions.where || !firestoreFunctions.orderBy || !firestoreFunctions.getDocs) return [];
-  const q = firestoreFunctions.query(
-    firestoreFunctions.collection(db, "guide_applications"),
-    firestoreFunctions.where("guestId", "==", guestId),
-    firestoreFunctions.orderBy("createdAt", "desc")
+  if (isServer || !db) return [];
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
+  
+  const q = functions.query(
+    functions.collection(db, "guide_applications"),
+    functions.where("guestId", "==", guestId),
+    functions.orderBy("createdAt", "desc")
   );
   
-  const querySnapshot = await firestoreFunctions.getDocs(q);
+  const querySnapshot = await functions.getDocs(q);
   return querySnapshot.docs.map((doc: any) => ({
     id: doc.id,
     ...doc.data()
@@ -350,14 +445,18 @@ export const getApplicationsForGuest = async (guestId: string): Promise<GuideApp
 };
 
 export const getApplicationsForGuide = async (guideId: string): Promise<GuideApplication[]> => {
-  if (!firestoreFunctions.query || !firestoreFunctions.collection || !firestoreFunctions.where || !firestoreFunctions.orderBy || !firestoreFunctions.getDocs) return [];
-  const q = firestoreFunctions.query(
-    firestoreFunctions.collection(db, "guide_applications"),
-    firestoreFunctions.where("guideId", "==", guideId),
-    firestoreFunctions.orderBy("createdAt", "desc")
+  if (isServer || !db) return [];
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.query || !functions.collection || !functions.where || !functions.orderBy || !functions.getDocs) return [];
+  
+  const q = functions.query(
+    functions.collection(db, "guide_applications"),
+    functions.where("guideId", "==", guideId),
+    functions.orderBy("createdAt", "desc")
   );
   
-  const querySnapshot = await firestoreFunctions.getDocs(q);
+  const querySnapshot = await functions.getDocs(q);
   return querySnapshot.docs.map((doc: any) => ({
     id: doc.id,
     ...doc.data()
@@ -365,43 +464,59 @@ export const getApplicationsForGuide = async (guideId: string): Promise<GuideApp
 };
 
 export const updateApplicationStatus = async (applicationId: string, status: RequestStatus) => {
-  if (!firestoreFunctions.updateDoc || !firestoreFunctions.doc) return;
-  const applicationRef = firestoreFunctions.doc(db, "guide_applications", applicationId);
-  await firestoreFunctions.updateDoc(applicationRef, {
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.updateDoc || !functions.doc) return;
+  
+  const applicationRef = functions.doc(db, "guide_applications", applicationId);
+  await functions.updateDoc(applicationRef, {
     status,
     updatedAt: new Date().toISOString()
   });
 };
 
 export const cancelGuideApplication = async (applicationId: string) => {
-  if (!firestoreFunctions.deleteDoc || !firestoreFunctions.doc) return;
-  const applicationRef = firestoreFunctions.doc(db, "guide_applications", applicationId);
-  await firestoreFunctions.deleteDoc(applicationRef);
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.deleteDoc || !functions.doc) return;
+  
+  const applicationRef = functions.doc(db, "guide_applications", applicationId);
+  await functions.deleteDoc(applicationRef);
 };
 
 export const hasAlreadyApplied = async (guideId: string, postId: string): Promise<boolean> => {
-  if (!firestoreFunctions.query || !firestoreFunctions.collection || !firestoreFunctions.where || !firestoreFunctions.getDocs) return false;
-  const q = firestoreFunctions.query(
-    firestoreFunctions.collection(db, "guide_applications"),
-    firestoreFunctions.where("guideId", "==", guideId),
-    firestoreFunctions.where("postId", "==", postId),
-    firestoreFunctions.where("status", "in", ["pending", "accepted"])
+  if (isServer || !db) return false;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.query || !functions.collection || !functions.where || !functions.getDocs) return false;
+  
+  const q = functions.query(
+    functions.collection(db, "guide_applications"),
+    functions.where("guideId", "==", guideId),
+    functions.where("postId", "==", postId),
+    functions.where("status", "in", ["pending", "accepted"])
   );
   
-  const querySnapshot = await firestoreFunctions.getDocs(q);
+  const querySnapshot = await functions.getDocs(q);
   return !querySnapshot.empty;
 };
 
 // ガイドが応募済みの投稿IDリストを取得
 export const getAppliedPostIds = async (guideId: string): Promise<string[]> => {
-  if (!firestoreFunctions.query || !firestoreFunctions.collection || !firestoreFunctions.where || !firestoreFunctions.getDocs) return [];
-  const q = firestoreFunctions.query(
-    firestoreFunctions.collection(db, "guide_applications"),
-    firestoreFunctions.where("guideId", "==", guideId),
-    firestoreFunctions.where("status", "in", ["pending", "accepted"])
+  if (isServer || !db) return [];
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.query || !functions.collection || !functions.where || !functions.getDocs) return [];
+  
+  const q = functions.query(
+    functions.collection(db, "guide_applications"),
+    functions.where("guideId", "==", guideId),
+    functions.where("status", "in", ["pending", "accepted"])
   );
   
-  const querySnapshot = await firestoreFunctions.getDocs(q);
+  const querySnapshot = await functions.getDocs(q);
   return querySnapshot.docs.map((doc: any) => doc.data().postId);
 };
 
@@ -413,14 +528,22 @@ export interface UserProfile {
 }
 
 export const saveUserProfile = async (uid: string, profile: UserProfile) => {
-  if (!firestoreFunctions.setDoc || !firestoreFunctions.doc) return;
-  await firestoreFunctions.setDoc(firestoreFunctions.doc(db, "users", uid), profile, { merge: true });
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.setDoc || !functions.doc) return;
+  
+  await functions.setDoc(functions.doc(db, "users", uid), profile, { merge: true });
 };
 
 // アクティベーション状態を更新
 export const updateActivationStatus = async (uid: string, activated: boolean) => {
-  if (!firestoreFunctions.updateDoc || !firestoreFunctions.doc) return;
-  await firestoreFunctions.updateDoc(firestoreFunctions.doc(db, "users", uid), {
+  if (isServer || !db) return;
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.updateDoc || !functions.doc) return;
+  
+  await functions.updateDoc(functions.doc(db, "users", uid), {
     activated: activated
   });
 };
