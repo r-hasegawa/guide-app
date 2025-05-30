@@ -270,7 +270,7 @@ export default function ActivationPendingPage() {
                 <>
                   1. Check your spam folder<br />
                   2. Verify your email address spelling<br />
-                  3. Wait a few minutes and click "Check verification status"<br />
+                  3. Wait a few minutes and click &ldquo;Check verification status&rdquo;<br />
                   4. If still not received, try resending
                 </>
               )}
