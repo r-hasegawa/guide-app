@@ -2,15 +2,48 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
 import { useAuthContext } from "@/contexts/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "@/firebase/firebaseConfig";
 
 export default function Header() {
   const { user, userInfo, loading } = useAuthContext();
+  const router = useRouter();
 
   const handleLogout = async () => {
     await signOut(auth);
+  };
+
+  // 確認ダイアログ付きのログアウト処理
+  const handleLogoutWithConfirmation = async () => {
+    // 確認ダイアログを表示
+    const confirmLogout = window.confirm('ログアウトしますか？');
+    
+    if (!confirmLogout) {
+      return; // ユーザーがキャンセルした場合は何もしない
+    }
+    
+    try {
+      console.log('ログアウト処理開始');
+      await signOut(auth);
+      console.log('ログアウト成功 - TOPページにリダイレクト');
+      
+      // TOPページにリダイレクト（replace使用で履歴を残さない）
+      router.replace('/');
+      
+      // 成功メッセージ（オプション）
+      // alert('ログアウトしました');
+      
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+      
+      // エラーメッセージを表示（オプション）
+      alert('ログアウト中にエラーが発生しましたが、TOPページに移動します。');
+      
+      // エラーが発生してもTOPページにリダイレクト
+      router.replace('/');
+    }
   };
 
   // ユーザーステータスを組み合わせたアイコンと色を決定
@@ -94,7 +127,7 @@ export default function Header() {
 
               {/* ログアウトボタンをアイコンと文字で表示 */}
               <button
-                onClick={handleLogout}
+                onClick={handleLogoutWithConfirmation}
                 className="flex flex-col items-center text-gray-700 hover:text-red-600 focus:outline-none"
                 aria-label="ログアウト"
               >

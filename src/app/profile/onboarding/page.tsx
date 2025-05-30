@@ -47,7 +47,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     // ログインしていない場合はログインページへ
     if (!loading && !user) {
-      router.replace("/login");
+      router.replace("/");
       return;
     }
 

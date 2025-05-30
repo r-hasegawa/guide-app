@@ -40,6 +40,11 @@ export interface UserBasicInfo {
   createdAt: string;
   profileCompleted: boolean;
   activated: boolean;
+  language: 'ja' | 'en';
+  notifications: {
+    email: boolean;
+    push: boolean;
+  };
 }
 
 // ガイド用プロフィール
@@ -911,6 +916,33 @@ export const saveUserProfile = async (uid: string, profile: UserProfile) => {
     await functions.setDoc(functions.doc(db, "users", uid), profile, { merge: true });
   } catch (error) {
     console.error("Error saving user profile:", error);
+    throw error;
+  }
+};
+
+// 言語と通知設定を同時に更新
+export const updateUserSettings = async (uid: string, settings: { language: 'ja' | 'en'; notifications: { email: boolean; push: boolean } }) => {
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.updateDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
+  
+  try {
+    await functions.updateDoc(functions.doc(db, "users", uid), {
+      language: settings.language,
+      notifications: settings.notifications
+    });
+  } catch (error) {
+    console.error("Error updating user settings:", error);
     throw error;
   }
 };

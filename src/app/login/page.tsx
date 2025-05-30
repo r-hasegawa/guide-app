@@ -3,15 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
-import Link from "next/link"; // 追加
+import Link from "next/link";
 import { 
   signInWithEmailAndPassword, 
   signInWithPopup, 
-  GoogleAuthProvider,
-  getAdditionalUserInfo
+  GoogleAuthProvider
 } from "firebase/auth";
 import { auth } from "@/firebase/firebaseConfig";
-import { getUserBasicInfo, saveUserBasicInfo } from "@/firebase/firestore";
+import { getUserBasicInfo } from "@/firebase/firestore";
 
 export default function LoginPage() {
   const { user, userInfo, loading } = useAuthContext();
@@ -28,53 +27,12 @@ export default function LoginPage() {
     // ログイン成功後の適切なページへのリダイレクト
     if (!loading && user && userInfo && userInfo.profileCompleted && userInfo.activated) {
       if (userInfo.role === 'guide') {
-        router.replace("/guides");
+        router.replace("/mypage");
       } else {
-        router.replace("/posts");
+        router.replace("/mypage");
       }
     }
   }, [user, userInfo, loading, router]);
-
-  const handleMissingUserData = async (firebaseUser: any) => {
-    console.log('handleMissingUserData called for user:', firebaseUser.uid);
-    
-    try {
-      // Firestoreでユーザーデータを確認
-      const existingUserInfo = await getUserBasicInfo(firebaseUser.uid);
-      
-      if (!existingUserInfo) {
-        console.log('User document does not exist in Firestore, creating...');
-        
-        // Firestoreにユーザーデータが存在しない場合、基本情報を作成
-        const userProfile = {
-          email: firebaseUser.email || '',
-          createdAt: new Date().toISOString(),
-          role: null as any, // オンボーディングで設定
-          profileCompleted: false,
-          activated: firebaseUser.emailVerified || false, // メール認証状態を反映
-        };
-        
-        await saveUserBasicInfo(firebaseUser.uid, userProfile);
-        console.log('Created basic user profile in Firestore');
-      } else {
-        console.log('User document exists in Firestore');
-      }
-      
-      // メール認証状態に応じたリダイレクト
-      if (!firebaseUser.emailVerified) {
-        router.replace("/activation/pending");
-      } else {
-        // オンボーディングにリダイレクト（AuthContextが更新されるまで少し待つ）
-        setTimeout(() => {
-          router.replace("/profile/onboarding");
-        }, 1000);
-      }
-      
-    } catch (error) {
-      console.error('Error handling missing user data:', error);
-      setError("ユーザーデータの処理中にエラーが発生しました。");
-    }
-  };
 
   const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -82,22 +40,45 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
+      // 入力値の検証
+      if (!email.trim() || !password.trim()) {
+        setError("メールアドレスとパスワードを入力してください。");
+        return;
+      }
+
+      console.log('Attempting email login for:', email);
+      
+      const result = await signInWithEmailAndPassword(auth, email.trim(), password);
       console.log('Email login success:', result.user.uid);
       
+      // Firestoreにデータがあるかチェック
+      const existingUserInfo = await getUserBasicInfo(result.user.uid);
+      
+      if (!existingUserInfo) {
+        // Firestoreにデータがない場合はログアウト
+        console.log('No Firestore data found for user');
+        await auth.signOut();
+        setError('ユーザーデータが見つかりません。新規登録を行ってください。');
+        return;
+      }
+      
       // ログイン成功後はuseEffectでリダイレクト処理される
-      // ただし、Firestoreにデータがない場合に備えて少し待つ
-      setTimeout(async () => {
-        const existingUserInfo = await getUserBasicInfo(result.user.uid);
-        
-        if (!existingUserInfo) {
-          await handleMissingUserData(result.user);
-        }
-      }, 1500);
+      console.log('Email login complete');
       
     } catch (err: any) {
-      console.error("ログインエラー:", err);
-      if (err.code === 'auth/user-not-found') {
+      // 予期される認証エラーの場合はconsole.errorを使用しない
+      const isAuthError = err.code && err.code.startsWith('auth/');
+      
+      if (isAuthError) {
+        console.log('Authentication failed:', err.code); // console.logを使用
+      } else {
+        console.error('Unexpected error during login:', err); // 予期しないエラーのみconsole.error
+      }
+      
+      // Firebase Auth v9以降では多くのエラーがinvalid-credentialに統合された
+      if (err.code === 'auth/invalid-credential') {
+        setError("メールアドレスまたはパスワードが正しくありません。");
+      } else if (err.code === 'auth/user-not-found') {
         setError("このメールアドレスは登録されていません。");
       } else if (err.code === 'auth/wrong-password') {
         setError("パスワードが間違っています。");
@@ -105,8 +86,12 @@ export default function LoginPage() {
         setError("メールアドレスの形式が正しくありません。");
       } else if (err.code === 'auth/too-many-requests') {
         setError("ログイン試行回数が多すぎます。しばらく待ってから再試行してください。");
+      } else if (err.code === 'auth/user-disabled') {
+        setError("このアカウントは無効化されています。");
+      } else if (err.code === 'auth/network-request-failed') {
+        setError("ネットワークエラーが発生しました。インターネット接続を確認してください。");
       } else {
-        setError("ログインに失敗しました。メールアドレスまたはパスワードを確認してください。");
+        setError("ログインに失敗しました。入力内容を確認してください。");
       }
     } finally {
       setIsLoading(false);
@@ -125,34 +110,39 @@ export default function LoginPage() {
       
       const result = await signInWithPopup(auth, provider);
       
-      // 新規ユーザーかどうかを判定
-      const additionalUserInfo = getAdditionalUserInfo(result);
-      const isNewUser = additionalUserInfo?.isNewUser ?? false;
-      
-      console.log('Google login success:', { 
+      console.log('Google login attempt:', { 
         uid: result.user.uid, 
-        email: result.user.email,
-        isNewUser: isNewUser
+        email: result.user.email
       });
       
-      if (isNewUser) {
-        // 新規ユーザーの場合はFirestoreにデータを作成
-        await handleMissingUserData(result.user);
-      } else {
-        // 既存ユーザーの場合、Firestoreにデータがあるかチェック
-        const existingUserInfo = await getUserBasicInfo(result.user.uid);
+      // Firestoreにユーザーデータが存在するかチェック
+      const existingUserInfo = await getUserBasicInfo(result.user.uid);
+      
+      if (!existingUserInfo) {
+        // Firestoreにデータがない = 新規ユーザー
+        console.log('New Google user detected, deleting Firebase Auth user');
         
-        if (!existingUserInfo) {
-          console.log('Existing user but no Firestore data, creating...');
-          await handleMissingUserData(result.user);
-        } else {
-          // データが存在する場合はuseEffectでリダイレクト処理される
-          console.log('Existing user with Firestore data, will redirect via useEffect');
-        }
+        // Firebase Authからユーザーを削除
+        await result.user.delete();
+        
+        // エラーメッセージを表示（リダイレクトなし）
+        setError('ユーザーデータが見つかりません。新規登録を行ってください。');
+        return;
       }
       
+      // 既存ユーザーでデータが存在する場合はuseEffectでリダイレクト処理される
+      console.log('Existing user login complete');
+      
     } catch (err: any) {
-      console.error("Googleログインエラー:", err);
+      // 予期される認証エラーの場合はconsole.errorを使用しない
+      const isAuthError = err.code && err.code.startsWith('auth/');
+      
+      if (isAuthError) {
+        console.log('Google authentication failed:', err.code); // console.logを使用
+      } else {
+        console.error('Unexpected error during Google login:', err); // 予期しないエラーのみconsole.error
+      }
+      
       if (err.code === 'auth/popup-closed-by-user') {
         setError('Googleログインがキャンセルされました。');
       } else if (err.code === 'auth/popup-blocked') {

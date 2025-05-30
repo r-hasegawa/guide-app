@@ -9,12 +9,15 @@ const PUBLIC_PATHS = [
   '/',        // トップページ
   '/login',   // ログインページ
   '/signup',  // サインアップページ
-  '/activation/pending',   // アクティベーション待機ページ
-  '/activation/complete',  // アクティベーション完了ページ
 ];
 
 // プロフィールオンボーディングページのパスを定義します。
 const ONBOARDING_PATH = '/profile/onboarding';
+
+const ACTIVATION_PATH = [
+  '/activation/pending',   // アクティベーション待機ページ
+  '/activation/complete',  // アクティベーション完了ページ
+];
 
 export function SessionWrapper({ children }: { children: React.ReactNode }) {
   const { user, userInfo, loading } = useAuthContext(); // 認証コンテキストからユーザー情報、付随情報、ロード状態を取得
@@ -38,30 +41,29 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
 
     // --- 未ログイン状態のリダイレクトロジック ---
     // ユーザーがログインしておらず (userがnull)、かつ現在のパスが公開パスリストに含まれていない場合
-    // ログインページにリダイレクトします。
+    // トップページにリダイレクトします。
     if (!user && !PUBLIC_PATHS.includes(pathname)) {
       console.log('Redirecting to login: not authenticated');
-      router.replace('/login'); // replaceを使用することで、ブラウザの履歴に残りません。
+      router.replace('/'); // replaceを使用することで、ブラウザの履歴に残りません。
       return;
     }
 
     // ==========================================
     // ログイン済みユーザーのリダイレクト優先順位
     // ==========================================
-    
-    // 【最優先】プロフィール未完了 → オンボーディング
-    // アクティベーション状態に関係なく、プロフィール設定を最優先
-    if (user && userInfo && !userInfo.profileCompleted && pathname !== ONBOARDING_PATH) {
-      console.log('Redirecting to onboarding: profile incomplete');
-      router.replace(ONBOARDING_PATH);
-      return;
-    }
 
-    // 【次の優先】アクティベーション未完了 → 認証待機ページ
-    // プロフィール完了済みの場合のみチェック
-    if (user && userInfo && userInfo.profileCompleted && !userInfo.activated && pathname !== '/activation/pending') {
+    // 【最優先】アクティベーション未完了 → 認証待機ページ
+    if (user && userInfo && !userInfo.activated && pathname !== '/activation/pending') {
       console.log('Redirecting to activation pending: not activated');
       router.replace('/activation/pending');
+      return;
+    }
+    
+    // 【次の優先】プロフィール未完了 → オンボーディング
+    // アクティベーション状態の場合は、プロフィール設定へ
+    if (user && userInfo && !userInfo.profileCompleted && userInfo.activated && pathname !== ONBOARDING_PATH) {
+      console.log('Redirecting to onboarding: profile incomplete');
+      router.replace(ONBOARDING_PATH);
       return;
     }
 
@@ -75,6 +77,17 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
       router.replace('/mypage');
       return;
     }
+
+    // ガイドのアクセス制限
+    if (user && userInfo?.role === 'guide') {
+      // ガイドがアクセスできないページ
+      if (pathname.startsWith('/guides')) {
+        console.log('ガイドはガイド関連ページにアクセスできません');
+        router.replace('/mypage');
+        return;
+      }
+    }
+
 
   }, [loading, user, userInfo, pathname, router]); // 依存配列: これらの値が変更されたときにuseEffectが再実行されます。
 

@@ -79,6 +79,11 @@ export default function SignupPage() {
         role: role as 'guide' | 'guest',
         profileCompleted: false,
         activated: firebaseUser.emailVerified || false, // メール認証状態を確認
+        language: 'ja' as const, // 【新規追加】デフォルト言語を日本語に設定
+        notifications: { // 【新規追加】デフォルト通知設定
+        email: false, // メール通知は初期でON
+        push: false // プッシュ通知も初期でON
+        }
       };
       
       console.log('Firestoreに保存するデータ:', userProfile);
