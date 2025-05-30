@@ -14,7 +14,10 @@ export default function Footer() {
   const isTopPage = pathname === "/";
   const isLoginOrSignup = pathname.startsWith("/login") || pathname.startsWith("/signup");
 
-  if (!user || isTopPage || isLoginOrSignup) return null;
+  // 管理者の場合はフッターを非表示
+  const isAdmin = userInfo && userInfo.role === 'admin';
+
+  if (!user || isTopPage || isLoginOrSignup || isAdmin) return null;
 
   // ユーザーがガイドの場合、またはrole情報がまだロードされていない場合は、
   // ガイド検索ボタンを表示しないためのフラグ

@@ -19,6 +19,11 @@ const ACTIVATION_PATH = [
   '/activation/complete',  // アクティベーション完了ページ
 ];
 
+// 管理者専用パス
+const ADMIN_PATHS = [
+  '/admin',
+];
+
 export function SessionWrapper({ children }: { children: React.ReactNode }) {
   const { user, userInfo, loading } = useAuthContext(); // 認証コンテキストからユーザー情報、付随情報、ロード状態を取得
   const router = useRouter();       // Next.jsのルーターフック
@@ -36,7 +41,8 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
       userInfo: userInfo,
       pathname,
       profileCompleted: userInfo?.profileCompleted,
-      activated: userInfo?.activated
+      activated: userInfo?.activated,
+      role: userInfo?.role
     });
 
     // --- 未ログイン状態のリダイレクトロジック ---
@@ -49,7 +55,22 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
     }
 
     // ==========================================
-    // ログイン済みユーザーのリダイレクト優先順位
+    // 管理者ユーザーの制御
+    // ==========================================
+    
+    if (user && userInfo && userInfo.role === 'admin') {
+      // 管理者は管理画面以外にアクセスできない
+      if (!ADMIN_PATHS.includes(pathname)) {
+        console.log('Redirecting admin to admin page');
+        router.replace('/admin');
+        return;
+      }
+      // 管理者の場合はここで処理終了（他の制御をスキップ）
+      return;
+    }
+
+    // ==========================================
+    // 一般ユーザー（guide/guest）のリダイレクト優先順位
     // ==========================================
 
     // 【最優先】アクティベーション未完了 → 認証待機ページ
@@ -78,6 +99,13 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // 一般ユーザーが管理者ページにアクセスしようとした場合
+    if (user && userInfo && userInfo.role !== 'admin' && ADMIN_PATHS.includes(pathname)) {
+      console.log('Non-admin user trying to access admin page, redirecting to mypage');
+      router.replace('/mypage');
+      return;
+    }
+
     // ガイドのアクセス制限
     if (user && userInfo?.role === 'guide') {
       // ガイドがアクセスできないページ
@@ -87,7 +115,6 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
         return;
       }
     }
-
 
   }, [loading, user, userInfo, pathname, router]); // 依存配列: これらの値が変更されたときにuseEffectが再実行されます。
 

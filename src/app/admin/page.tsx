@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import AdminGuard from '@/components/AdminGuard';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { getFirestore } from '@/firebase/firebaseConfig';
 
 // シンプルなお知らせの型定義
 interface Announcement {
@@ -44,11 +45,11 @@ export default function AdminDashboard() {
   const fetchAnnouncements = async () => {
     setAnnouncementsLoading(true);
     try {
-      const { collection, query, orderBy, getDocs } = await import('firebase/firestore');
-      const { getFirestore } = await import('@/firebase/firebaseConfig');
-      
       const db = await getFirestore();
       if (!db) return;
+
+      // 動的にFirestore関数をインポート
+      const { collection, query, orderBy, getDocs } = await import('firebase/firestore');
 
       const q = query(
         collection(db, 'announcements'),
@@ -88,11 +89,11 @@ export default function AdminDashboard() {
 
     setCreating(true);
     try {
-      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
-      const { getFirestore } = await import('@/firebase/firebaseConfig');
-      
       const db = await getFirestore();
       if (!db) throw new Error('Firestore not initialized');
+
+      // 動的にFirestore関数をインポート
+      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
 
       await addDoc(collection(db, 'announcements'), {
         titleJa: newAnnouncement.titleJa.trim(),
@@ -128,11 +129,11 @@ export default function AdminDashboard() {
     if (!confirm('このお知らせを削除しますか？')) return;
 
     try {
-      const { doc, deleteDoc } = await import('firebase/firestore');
-      const { getFirestore } = await import('@/firebase/firebaseConfig');
-      
       const db = await getFirestore();
       if (!db) throw new Error('Firestore not initialized');
+
+      // 動的にFirestore関数をインポート
+      const { doc, deleteDoc } = await import('firebase/firestore');
 
       await deleteDoc(doc(db, 'announcements', announcementId));
       alert('お知らせを削除しました');
@@ -165,12 +166,6 @@ export default function AdminDashboard() {
                 <span className="text-sm text-gray-600">
                   管理者: {user?.email}
                 </span>
-                <button
-                  onClick={() => window.location.href = '/mypage'}
-                  className="text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  アプリに戻る
-                </button>
               </div>
             </div>
           </div>

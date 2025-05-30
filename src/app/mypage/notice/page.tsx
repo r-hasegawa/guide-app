@@ -37,11 +37,12 @@ export default function NoticePage() {
   // お知らせ一覧を取得
   const fetchAnnouncements = async () => {
     try {
-      const { collection, query, orderBy, getDocs } = await import('firebase/firestore');
       const { getFirestore } = await import('@/firebase/firebaseConfig');
-      
       const db = await getFirestore();
       if (!db) return;
+
+      // 動的にFirestore関数をインポート
+      const { collection, query, orderBy, getDocs } = await import('firebase/firestore');
 
       // 作成日時順でお知らせを取得
       const q = query(

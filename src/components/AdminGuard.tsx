@@ -25,17 +25,24 @@ export default function AdminGuard({ children }: AdminGuardProps) {
       }
 
       try {
-        // Firebase Auth のカスタムクレームをチェック
-        const idTokenResult = await user.getIdTokenResult();
-        const isAdminUser = idTokenResult.claims.admin === true;
-        
-        if (!isAdminUser) {
-          // 管理者でない場合はマイページにリダイレクト
+        // まずuserInfoのroleをチェック
+        if (userInfo && userInfo.role === 'admin') {
+          // Firebase Auth のカスタムクレームもチェック
+          const idTokenResult = await user.getIdTokenResult();
+          const isAdminUser = idTokenResult.claims.admin === true;
+          
+          if (isAdminUser) {
+            setIsAdmin(true);
+          } else {
+            console.log('UserInfo shows admin but custom claims do not match');
+            router.replace('/mypage');
+            return;
+          }
+        } else {
+          console.log('User is not admin, role:', userInfo?.role);
           router.replace('/mypage');
           return;
         }
-        
-        setIsAdmin(true);
       } catch (error) {
         console.error('Admin check failed:', error);
         router.replace('/mypage');
@@ -45,15 +52,15 @@ export default function AdminGuard({ children }: AdminGuardProps) {
     };
 
     checkAdminStatus();
-  }, [user, loading, router]);
+  }, [user, userInfo, loading, router]);
 
   if (loading || checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-800">
+        <div className="text-center text-white">
           <div className="text-6xl mb-4">⏳</div>
           <h1 className="text-2xl font-bold mb-2">管理者権限を確認中...</h1>
-          <p className="text-gray-600">しばらくお待ちください</p>
+          <p className="text-gray-300">しばらくお待ちください</p>
         </div>
       </div>
     );
@@ -61,11 +68,11 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-800">
+        <div className="text-center text-white">
           <div className="text-6xl mb-4">🚫</div>
-          <h1 className="text-2xl font-bold text-red-600 mb-4">アクセス拒否</h1>
-          <p className="text-gray-600 mb-6">このページにアクセスするには管理者権限が必要です。</p>
+          <h1 className="text-2xl font-bold text-red-400 mb-4">アクセス拒否</h1>
+          <p className="text-gray-300 mb-6">このページにアクセスするには管理者権限が必要です。</p>
           <button
             onClick={() => router.push('/mypage')}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"

@@ -49,7 +49,30 @@ export default function Header() {
     }
   };
 
-  // ユーザーステータスを組み合わせたアイコンと色を決定
+  // 管理者の場合は専用のヘッダーを表示
+  if (!loading && user && userInfo && userInfo.role === 'admin') {
+    return (
+      <header className="flex justify-between items-center px-6 py-4 bg-gray-800 text-white">
+        <div className="text-xl font-bold">🛡️ TABIFY Admin</div>
+        
+        <div className="flex items-center space-x-4">
+          <span className="text-sm text-gray-300">
+            管理者: {user.email}
+          </span>
+          <button
+            onClick={handleLogoutWithConfirmation}
+            className="flex items-center space-x-1 text-gray-300 hover:text-white focus:outline-none"
+            aria-label="ログアウト"
+          >
+            <span role="img" aria-label="logout" className="text-lg">🚪</span>
+            <span className="text-sm">ログアウト</span>
+          </button>
+        </div>
+      </header>
+    );
+  }
+
+  // ユーザーステータスを組み合わせたアイコンと色を決定（一般ユーザー用）
   const getUserStatusInfo = () => {
     if (!userInfo) return { 
       icon: '👤', 
@@ -91,6 +114,7 @@ export default function Header() {
 
   const statusInfo = user ? getUserStatusInfo() : null;
 
+  // 一般ユーザー用のヘッダー
   return (
     <header className="flex justify-between items-center px-6 py-4 bg-gray-100">
       <Link href="/" className="text-xl text-gray-700 font-bold">TABIFY</Link>
@@ -100,7 +124,7 @@ export default function Header() {
           {user ? (
             <>
               {/* ユーザーのロールに応じたアイコンと文字表示 */}
-              {userInfo && userInfo.role && (
+              {userInfo && userInfo.role && userInfo.role !== 'admin' && (
                 <div className="flex flex-col items-center mr-4">
                   <span className="text-lg" role="img" aria-label="user role">
                     {userInfo.role === 'guide' ? '🎓' : '✈️'}
@@ -111,8 +135,8 @@ export default function Header() {
                 </div>
               )}
 
-              {/* アクティベーション状態の表示 */}
-              {userInfo && (
+              {/* アクティベーション状態の表示（一般ユーザーのみ） */}
+              {userInfo && userInfo.role !== 'admin' && (
                 <div className="flex flex-col items-center mr-4">
                   <span className="text-lg" role="img" aria-label="activation status">
                     {userInfo.activated ? '✅' : '⚠️'}
