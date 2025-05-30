@@ -273,8 +273,12 @@ export interface TranslationKeys {
     online: string;
     offline: string;
   };
+}
 
-  // 便利なプロパティ
+// 翻訳コンテキストで使用される拡張型
+export interface TranslationContextType {
+  language: Language;
+  t: TranslationKeys;
   isJapanese: boolean;
   isEnglish: boolean;
 }

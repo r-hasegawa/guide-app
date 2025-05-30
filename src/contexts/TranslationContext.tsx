@@ -3,16 +3,9 @@
 
 import { createContext, useContext, ReactNode } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { Language, TranslationKeys } from '@/types/translation';
+import { Language, TranslationKeys, TranslationContextType } from '@/types/translation';
 import { ja } from '@/translations/ja';
 import { en } from '@/translations/en';
-
-interface TranslationContextType {
-  language: Language;
-  t: TranslationKeys;
-  isJapanese: boolean;
-  isEnglish: boolean;
-}
 
 const TranslationContext = createContext<TranslationContextType>({
   language: 'ja',
