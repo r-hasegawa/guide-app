@@ -1,8 +1,11 @@
+// src/app/posts/create/page.tsx
 'use client';
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { LANGUAGE_OPTIONS, AREA_OPTIONS } from "@/constants/options";
 import { auth } from "@/firebase/firebaseConfig";
 import { 
   createGuestPost,
@@ -13,6 +16,7 @@ import {
 export default function CreatePostPage() {
   const router = useRouter();
   const [user, loading] = useAuthState(auth);
+  const { t } = useTranslation();
   const [guestName, setGuestName] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -21,21 +25,17 @@ export default function CreatePostPage() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    languages: [] as string[], // preferredLanguages から languages に変更
+    languages: [] as string[],
     areas: [] as string[],
     date: "",
     budget: "",
-    duration: "" // 追加
+    duration: ""
   });
-
-  // 言語とエリアの選択肢
-  const availableLanguages = ["日本語", "英語", "中国語", "韓国語", "フランス語", "スペイン語", "ドイツ語", "イタリア語"];
-  const availableAreas = ["東京", "大阪", "京都", "横浜", "名古屋", "福岡", "札幌", "広島", "仙台", "神戸"];
 
   useEffect(() => {
     const fetchData = async () => {
       if (!user) {
-        router.push("/auth/login");
+        router.push("/login");
         return;
       }
 
@@ -98,7 +98,10 @@ export default function CreatePostPage() {
     }
 
     if (!formData.title.trim() || !formData.description.trim()) {
-      alert("タイトルと詳細は必須項目です。");
+      alert(t.isJapanese 
+        ? "タイトルと詳細は必須項目です。"
+        : "Title and description are required fields."
+      );
       return;
     }
 
@@ -118,18 +121,18 @@ export default function CreatePostPage() {
 
       await createGuestPost(postData);
 
-      alert("募集を作成しました！");
+      alert(t.posts.postCreated);
       router.push("/posts");
     } catch (error) {
       console.error("募集の作成に失敗しました:", error);
-      alert("募集の作成に失敗しました。もう一度お試しください。");
+      alert(t.errors.saveError);
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loading || pageLoading) {
-    return <div className="text-center py-10">読み込み中...</div>;
+    return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   return (
@@ -139,16 +142,16 @@ export default function CreatePostPage() {
           onClick={() => router.back()}
           className="text-blue-500 hover:text-blue-700 flex items-center gap-1 mb-4"
         >
-          ← 戻る
+          ← {t.common.back}
         </button>
-        <h1 className="text-3xl font-bold">新しい募集を作成</h1>
+        <h1 className="text-3xl font-bold">{t.posts.createPost}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* タイトル */}
         <div>
           <label htmlFor="title" className="block text-sm font-medium mb-2">
-            募集タイトル *
+            {t.posts.title} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -156,7 +159,10 @@ export default function CreatePostPage() {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            placeholder="例: 東京観光のガイドを探しています"
+            placeholder={t.isJapanese 
+              ? "例: 東京観光のガイドを探しています"
+              : "e.g., Looking for a guide for Tokyo sightseeing"
+            }
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           />
@@ -165,14 +171,17 @@ export default function CreatePostPage() {
         {/* 詳細 */}
         <div>
           <label htmlFor="description" className="block text-sm font-medium mb-2">
-            詳細 *
+            {t.posts.description} <span className="text-red-500">*</span>
           </label>
           <textarea
             id="description"
             name="description"
             value={formData.description}
             onChange={handleInputChange}
-            placeholder="どのようなガイドを希望するか、詳しく説明してください"
+            placeholder={t.isJapanese
+              ? "どのようなガイドを希望するか、詳しく説明してください"
+              : "Please describe in detail what kind of guide you are looking for"
+            }
             rows={5}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
@@ -182,10 +191,10 @@ export default function CreatePostPage() {
         {/* 希望言語 */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            希望する言語
+            {t.posts.preferredLanguages}
           </label>
           <div className="flex flex-wrap gap-2">
-            {availableLanguages.map(language => (
+            {LANGUAGE_OPTIONS.map(language => (
               <button
                 key={language}
                 type="button"
@@ -205,10 +214,10 @@ export default function CreatePostPage() {
         {/* 希望エリア */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            希望するエリア
+            {t.posts.preferredAreas}
           </label>
           <div className="flex flex-wrap gap-2">
-            {availableAreas.map(area => (
+            {AREA_OPTIONS.map(area => (
               <button
                 key={area}
                 type="button"
@@ -228,7 +237,7 @@ export default function CreatePostPage() {
         {/* 希望日時 */}
         <div>
           <label htmlFor="date" className="block text-sm font-medium mb-2">
-            希望日時（任意）
+            {t.posts.preferredDate} ({t.common.optional})
           </label>
           <input
             type="text"
@@ -236,7 +245,10 @@ export default function CreatePostPage() {
             name="date"
             value={formData.date}
             onChange={handleInputChange}
-            placeholder="例: 2024年3月15日 10:00-17:00"
+            placeholder={t.isJapanese
+              ? "例: 2024年3月15日 10:00-17:00"
+              : "e.g., March 15, 2024 10:00-17:00"
+            }
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -244,7 +256,7 @@ export default function CreatePostPage() {
         {/* 希望時間 */}
         <div>
           <label htmlFor="duration" className="block text-sm font-medium mb-2">
-            希望時間（任意）
+            {t.posts.preferredTime} ({t.common.optional})
           </label>
           <input
             type="text"
@@ -252,7 +264,10 @@ export default function CreatePostPage() {
             name="duration"
             value={formData.duration}
             onChange={handleInputChange}
-            placeholder="例: 半日（4時間）、1日（8時間）"
+            placeholder={t.isJapanese
+              ? "例: 半日（4時間）、1日（8時間）"
+              : "e.g., Half day (4 hours), Full day (8 hours)"
+            }
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -260,7 +275,7 @@ export default function CreatePostPage() {
         {/* 予算 */}
         <div>
           <label htmlFor="budget" className="block text-sm font-medium mb-2">
-            予算（任意）
+            {t.common.budget} ({t.common.optional})
           </label>
           <input
             type="text"
@@ -268,7 +283,10 @@ export default function CreatePostPage() {
             name="budget"
             value={formData.budget}
             onChange={handleInputChange}
-            placeholder="例: 10,000円/日"
+            placeholder={t.isJapanese
+              ? "例: 10,000円/日"
+              : "e.g., ¥10,000/day"
+            }
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -280,14 +298,14 @@ export default function CreatePostPage() {
             onClick={() => router.back()}
             className="flex-1 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition"
           >
-            キャンセル
+            {t.common.cancel}
           </button>
           <button
             type="submit"
             disabled={submitting}
             className="flex-1 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
           >
-            {submitting ? "作成中..." : "募集を作成"}
+            {submitting ? t.common.processing : t.posts.createPost}
           </button>
         </div>
       </form>

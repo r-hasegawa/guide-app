@@ -1,3 +1,4 @@
+// src/app/activation/pending/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,9 +6,11 @@ import { useRouter } from 'next/navigation';
 import { sendEmailVerification, signOut } from 'firebase/auth';
 import { auth } from '@/firebase/firebaseConfig';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function ActivationPendingPage() {
   const { user, userInfo, loading, refreshUserInfo } = useAuthContext();
+  const { t } = useTranslation();
   const router = useRouter();
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
@@ -47,7 +50,11 @@ export default function ActivationPendingPage() {
     
     // クールダウン中の場合は処理しない
     if (cooldownRemaining > 0) {
-      setError(`再送信は${Math.ceil(cooldownRemaining / 1000)}秒後に可能です。`);
+      const seconds = Math.ceil(cooldownRemaining / 1000);
+      const message = t.isJapanese 
+        ? `再送信は${seconds}秒後に可能です。`
+        : `Resend available in ${seconds} seconds.`;
+      setError(message);
       return;
     }
 
@@ -73,16 +80,25 @@ export default function ActivationPendingPage() {
       
       // エラーコードに応じたメッセージを表示
       if (error.code === 'auth/too-many-requests') {
-        setError('リクエストが多すぎます。しばらく時間をおいてから再試行してください。（通常15分～1時間程度）');
+        const message = t.isJapanese
+          ? 'リクエストが多すぎます。しばらく時間をおいてから再試行してください。（通常15分～1時間程度）'
+          : 'Too many requests. Please wait a while before trying again. (Usually 15 minutes to 1 hour)';
+        setError(message);
         // too-many-requestsの場合は長いクールダウンを設定
         setLastResendTime(Date.now());
         setCooldownRemaining(15 * 60 * 1000); // 15分
       } else if (error.code === 'auth/invalid-email') {
-        setError('メールアドレスが無効です。');
+        setError(t.errors.invalidEmail);
       } else if (error.code === 'auth/user-disabled') {
-        setError('このアカウントは無効化されています。サポートにお問い合わせください。');
+        const message = t.isJapanese
+          ? 'このアカウントは無効化されています。サポートにお問い合わせください。'
+          : 'This account has been disabled. Please contact support.';
+        setError(message);
       } else {
-        setError('メールの再送信に失敗しました。しばらく待ってから再試行してください。');
+        const message = t.isJapanese
+          ? 'メールの再送信に失敗しました。しばらく待ってから再試行してください。'
+          : 'Failed to resend email. Please wait a while and try again.';
+        setError(message);
       }
     } finally {
       setResending(false);
@@ -109,11 +125,14 @@ export default function ActivationPendingPage() {
         // メール認証が完了している場合は自動でリダイレクト
         router.push('/activation/complete');
       } else {
-        setError('まだメール認証が完了していません。メールボックスをご確認ください。');
+        const message = t.isJapanese
+          ? 'まだメール認証が完了していません。メールボックスをご確認ください。'
+          : 'Email verification is not yet complete. Please check your mailbox.';
+        setError(message);
       }
     } catch (error) {
       console.error('ステータス確認エラー:', error);
-      setError('ステータスの確認に失敗しました。');
+      setError(t.errors.loadError);
     }
   };
 
@@ -123,7 +142,7 @@ export default function ActivationPendingPage() {
   };
 
   if (loading) {
-    return <div className="text-center py-10">読み込み中...</div>;
+    return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   if (!user) {
@@ -135,9 +154,9 @@ export default function ActivationPendingPage() {
     const seconds = Math.floor((ms % 60000) / 1000);
     
     if (minutes > 0) {
-      return `${minutes}分${seconds}秒`;
+      return t.isJapanese ? `${minutes}分${seconds}秒` : `${minutes}m ${seconds}s`;
     }
-    return `${seconds}秒`;
+    return t.isJapanese ? `${seconds}秒` : `${seconds}s`;
   };
 
   return (
@@ -145,14 +164,20 @@ export default function ActivationPendingPage() {
       <div className="w-full max-w-md text-center">
         <div className="mb-8">
           <div className="text-6xl mb-4">📧</div>
-          <h1 className="text-2xl font-bold mb-2">メールアドレスの認証が必要です</h1>
+          <h1 className="text-2xl font-bold mb-2">{t.auth.emailVerificationRequired}</h1>
           <p className="text-gray-600 mb-4">
-            登録したメールアドレス宛に認証メールを送信しました。
+            {t.isJapanese 
+              ? '登録したメールアドレス宛に認証メールを送信しました。'
+              : 'We have sent a verification email to your registered email address.'
+            }
           </p>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-blue-800">
               <strong>{user.email}</strong><br />
-              上記のメールアドレスに送信された認証リンクをクリックして、アカウントを有効化してください。
+              {t.isJapanese
+                ? '上記のメールアドレスに送信された認証リンクをクリックして、アカウントを有効化してください。'
+                : 'Please click the verification link sent to the above email address to activate your account.'
+              }
             </p>
           </div>
         </div>
@@ -163,7 +188,7 @@ export default function ActivationPendingPage() {
             onClick={handleCheckStatus}
             className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition"
           >
-            認証状態を確認
+            {t.auth.checkStatus}
           </button>
 
           {/* ページ更新ボタン */}
@@ -171,7 +196,7 @@ export default function ActivationPendingPage() {
             onClick={handleRefreshPage}
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition"
           >
-            ページを更新
+            {t.auth.refreshPage}
           </button>
 
           {/* 認証メール再送信ボタン */}
@@ -181,10 +206,12 @@ export default function ActivationPendingPage() {
             className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
           >
             {resending 
-              ? '送信中...' 
+              ? (t.isJapanese ? '送信中...' : 'Sending...')
               : cooldownRemaining > 0 
-                ? `認証メールを再送信 (${formatCooldownTime(cooldownRemaining)}後に可能)`
-                : '認証メールを再送信'
+                ? (t.isJapanese 
+                    ? `認証メールを再送信 (${formatCooldownTime(cooldownRemaining)}後に可能)`
+                    : `Resend verification email (Available in ${formatCooldownTime(cooldownRemaining)})`)
+                : t.auth.resendVerification
             }
           </button>
 
@@ -192,7 +219,10 @@ export default function ActivationPendingPage() {
           {resent && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <p className="text-green-800 text-sm">
-                認証メールを再送信しました。メールボックスをご確認ください。
+                {t.isJapanese
+                  ? '認証メールを再送信しました。メールボックスをご確認ください。'
+                  : 'Verification email has been resent. Please check your mailbox.'
+                }
               </p>
             </div>
           )}
@@ -209,23 +239,41 @@ export default function ActivationPendingPage() {
             onClick={handleLogout}
             className="w-full bg-gray-500 text-white py-3 px-4 rounded-lg hover:bg-gray-600 transition"
           >
-            ログアウト
+            {t.auth.logout}
           </button>
         </div>
 
         <div className="mt-8 space-y-4">
           <div className="text-sm text-gray-500">
-            <p>メールが届かない場合は、迷惑メールフォルダもご確認ください。</p>
+            <p>
+              {t.isJapanese
+                ? 'メールが届かない場合は、迷惑メールフォルダもご確認ください。'
+                : 'If you do not receive the email, please check your spam folder as well.'
+              }
+            </p>
           </div>
           
           {/* 追加のヘルプ情報 */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <p className="text-yellow-800 text-sm">
-              <strong>認証メールが届かない場合：</strong><br />
-              1. 迷惑メールフォルダを確認<br />
-              2. メールアドレスのスペルを確認<br />
-              3. 数分待ってから「認証状態を確認」をクリック<br />
-              4. それでも届かない場合は再送信をお試しください
+              <strong>
+                {t.isJapanese ? '認証メールが届かない場合：' : 'If verification email does not arrive:'}
+              </strong><br />
+              {t.isJapanese ? (
+                <>
+                  1. 迷惑メールフォルダを確認<br />
+                  2. メールアドレスのスペルを確認<br />
+                  3. 数分待ってから「認証状態を確認」をクリック<br />
+                  4. それでも届かない場合は再送信をお試しください
+                </>
+              ) : (
+                <>
+                  1. Check your spam folder<br />
+                  2. Verify your email address spelling<br />
+                  3. Wait a few minutes and click "Check verification status"<br />
+                  4. If still not received, try resending
+                </>
+              )}
             </p>
           </div>
         </div>

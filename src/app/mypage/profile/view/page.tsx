@@ -1,12 +1,15 @@
+// src/app/mypage/profile/view/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useTranslation } from "@/contexts/TranslationContext";
 import { getGuideProfile, getGuestProfile, GuideProfile, GuestProfile } from "@/firebase/firestore";
 
 export default function ProfileViewPage() {
   const { user, userInfo, loading } = useAuthContext();
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [guideProfile, setGuideProfile] = useState<GuideProfile | null>(null);
@@ -50,7 +53,7 @@ export default function ProfileViewPage() {
   }, [user, userInfo, loading, router]);
 
   if (loading || profileLoading) {
-    return <div className="text-center py-10">読み込み中...</div>;
+    return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   // user が存在しない場合や userInfo がまだロードされていない場合は null を返す
@@ -75,25 +78,27 @@ export default function ProfileViewPage() {
           onClick={() => router.push('/mypage')}
           className="mr-4 text-blue-500 hover:text-blue-700"
         >
-          ← 戻る
+          ← {t.common.back}
         </button>
         <h1 className="text-2xl font-bold">
-          {isGuide ? 'ガイドプロフィール' : '観光客プロフィール'}
+          {isGuide ? t.profile.guideProfile : t.profile.guestProfile}
         </h1>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">プロフィール詳細</h2>
+          <h2 className="text-xl font-semibold">
+            {t.isJapanese ? 'プロフィール詳細' : 'Profile Details'}
+          </h2>
           <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-            {isGuide ? 'ガイド' : '観光客'}
+            {isGuide ? t.roles.guide : t.roles.guest}
           </span>
         </div>
 
         <div className="space-y-6">
           {/* 名前 */}
           <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-1">名前</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-1">{t.common.name}</h3>
             <p className="text-lg">{profile.name}</p>
           </div>
 
@@ -101,7 +106,7 @@ export default function ProfileViewPage() {
             <>
               {/* ガイド専用フィールド */}
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">話せる言語</h3>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">{t.profile.spokenLanguages}</h3>
                 <div className="flex flex-wrap gap-2">
                   {(profile as GuideProfile).languages.map((lang, index) => (
                     <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
@@ -112,9 +117,8 @@ export default function ProfileViewPage() {
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">対応エリア</h3>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">{t.profile.supportedAreas}</h3>
                 <div className="flex flex-wrap gap-2">
-                  {/* Assuming 'areas' from GuideProfile maps to 'specialties' or just displays areas */}
                   {(profile as GuideProfile).areas.map((area, index) => (
                     <span key={index} className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
                       {area}
@@ -124,15 +128,15 @@ export default function ProfileViewPage() {
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">自己紹介</h3>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">{t.profile.selfIntroduction}</h3>
                 <p className="whitespace-pre-line">{(profile as GuideProfile).introduction}</p>
               </div>
             </>
           ) : (
             <>
-              {/* 観光客専用フィールド（オンボーディングで入力された項目のみ表示） */}
+              {/* 観光客専用フィールド */}
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">話せる言語</h3>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">{t.profile.spokenLanguages}</h3>
                 <div className="flex flex-wrap gap-2">
                   {(profile as GuestProfile).languages.map((lang, index) => (
                     <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
@@ -142,10 +146,12 @@ export default function ProfileViewPage() {
                 </div>
               </div>
               
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">自己紹介</h3>
-                <p className="whitespace-pre-line">{(profile as GuestProfile).introduction}</p>
-              </div>
+              {(profile as GuestProfile).introduction && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">{t.profile.selfIntroduction}</h3>
+                  <p className="whitespace-pre-line">{(profile as GuestProfile).introduction}</p>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -155,7 +161,7 @@ export default function ProfileViewPage() {
             onClick={() => router.push("/mypage/profile/edit")}
             className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
           >
-            プロフィールを編集
+            {t.isJapanese ? 'プロフィールを編集' : 'Edit Profile'}
           </button>
         </div>
       </div>

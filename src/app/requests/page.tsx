@@ -1,7 +1,9 @@
+// src/app/requests/page.tsx
 'use client';
 
 import { useState, useEffect } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useTranslation } from "@/contexts/TranslationContext";
 import { auth } from "@/firebase/firebaseConfig";
 import { 
   getRequestsForGuide, 
@@ -20,6 +22,7 @@ import {
 
 export default function RequestPage() {
   const [user, loading] = useAuthState(auth);
+  const { t } = useTranslation();
   
   // マッチングリクエスト（観光客→ガイド）
   const [sentMatchingRequests, setSentMatchingRequests] = useState<MatchingRequest[]>([]);
@@ -101,7 +104,7 @@ export default function RequestPage() {
       );
     } catch (error) {
       console.error("ステータスの更新に失敗しました:", error);
-      alert("ステータスの更新に失敗しました。もう一度お試しください。");
+      alert(t.errors.updateError);
     } finally {
       setUpdatingRequest(null);
     }
@@ -109,7 +112,8 @@ export default function RequestPage() {
 
   // マッチングリクエストの取り消し
   const handleCancelMatchingRequest = async (requestId: string) => {
-    if (!confirm("リクエストを取り消しますか？")) {
+    const confirmMessage = t.isJapanese ? 'リクエストを取り消しますか？' : 'Are you sure you want to cancel this request?';
+    if (!confirm(confirmMessage)) {
       return;
     }
 
@@ -117,10 +121,10 @@ export default function RequestPage() {
     try {
       await cancelMatchingRequest(requestId);
       setSentMatchingRequests(prev => prev.filter(req => req.id !== requestId));
-      alert("リクエストを取り消しました。");
+      alert(t.success.requestCanceled);
     } catch (error) {
       console.error("リクエストの取り消しに失敗しました:", error);
-      alert("リクエストの取り消しに失敗しました。もう一度お試しください。");
+      alert(t.errors.updateError);
     } finally {
       setUpdatingRequest(null);
     }
@@ -141,7 +145,7 @@ export default function RequestPage() {
       );
     } catch (error) {
       console.error("ステータスの更新に失敗しました:", error);
-      alert("ステータスの更新に失敗しました。もう一度お試しください。");
+      alert(t.errors.updateError);
     } finally {
       setUpdatingRequest(null);
     }
@@ -149,7 +153,8 @@ export default function RequestPage() {
 
   // ガイド応募の取り消し
   const handleCancelApplication = async (applicationId: string) => {
-    if (!confirm("応募を取り消しますか？")) {
+    const confirmMessage = t.isJapanese ? '応募を取り消しますか？' : 'Are you sure you want to cancel this application?';
+    if (!confirm(confirmMessage)) {
       return;
     }
 
@@ -157,10 +162,10 @@ export default function RequestPage() {
     try {
       await cancelGuideApplication(applicationId);
       setSentApplications(prev => prev.filter(app => app.id !== applicationId));
-      alert("応募を取り消しました。");
+      alert(t.success.applicationCanceled);
     } catch (error) {
       console.error("応募の取り消しに失敗しました:", error);
-      alert("応募の取り消しに失敗しました。もう一度お試しください。");
+      alert(t.errors.updateError);
     } finally {
       setUpdatingRequest(null);
     }
@@ -169,19 +174,21 @@ export default function RequestPage() {
   const getStatusBadge = (status: RequestStatus) => {
     switch (status) {
       case 'pending':
-        return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">待機中</span>;
+        return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">{t.common.pending}</span>;
       case 'accepted':
-        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">承認済み</span>;
+        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">{t.common.approved}</span>;
       case 'rejected':
-        return <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">拒否済み</span>;
+        return <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">{t.common.rejected}</span>;
       default:
-        return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">不明</span>;
+        return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+          {t.isJapanese ? '不明' : 'Unknown'}
+        </span>;
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ja-JP', {
+    return date.toLocaleDateString(t.isJapanese ? 'ja-JP' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -201,21 +208,21 @@ export default function RequestPage() {
   };
 
   if (loading || pageLoading) {
-    return <div className="text-center py-10">読み込み中...</div>;
+    return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   if (!user || !userRole) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">📩 申請管理</h1>
-        <p>ログインしてください。</p>
+        <h1 className="text-2xl font-bold mb-4">📩 {t.requests.requestManagement}</h1>
+        <p>{t.isJapanese ? 'ログインしてください。' : 'Please log in.'}</p>
       </div>
     );
   }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">📩 申請管理</h1>
+      <h1 className="text-2xl font-bold mb-6">📩 {t.requests.requestManagement}</h1>
       
       {/* タブ切り替え */}
       <div className="mb-6">
@@ -229,7 +236,7 @@ export default function RequestPage() {
                   : 'border-transparent hover:border-gray-300'
               }`}
             >
-              送信した申請 ({getSentCount()})
+              {t.requests.sentRequests} ({getSentCount()})
             </button>
             <button
               onClick={() => setActiveTab('received')}
@@ -239,7 +246,7 @@ export default function RequestPage() {
                   : 'border-transparent hover:border-gray-300'
               }`}
             >
-              受信した申請 ({getReceivedCount()})
+              {t.requests.receivedRequests} ({getReceivedCount()})
             </button>
           </nav>
         </div>
@@ -248,31 +255,33 @@ export default function RequestPage() {
       {/* 送信した申請 */}
       {activeTab === 'sent' && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">送信した申請</h2>
+          <h2 className="text-lg font-semibold">{t.requests.sentRequests}</h2>
           
           {getSentCount() === 0 ? (
             <div className="text-center py-10 text-gray-500">
-              <p>送信した申請はありません</p>
+              <p>{t.requests.noSentRequests}</p>
             </div>
           ) : (
             <div className="space-y-6">
               {/* マッチングリクエスト（観光客→ガイド） */}
               {sentMatchingRequests.length > 0 && (
                 <div>
-                  <h3 className="text-md font-medium mb-3">ガイドへのリクエスト</h3>
+                  <h3 className="text-md font-medium mb-3">{t.requests.requestsToGuides}</h3>
                   <div className="space-y-4">
                     {sentMatchingRequests.map((request) => (
                       <div key={request.id} className="bg-white border rounded-lg shadow-sm p-6">
                         <div className="flex justify-between items-start mb-4">
                           <div>
-                            <h4 className="text-lg font-semibold">{request.guideName}さんへのリクエスト</h4>
+                            <h4 className="text-lg font-semibold">
+                              {t.isJapanese ? `${request.guideName}さんへのリクエスト` : `Request to ${request.guideName}`}
+                            </h4>
                             <p className="text-sm text-gray-500">{formatDate(request.createdAt)}</p>
                           </div>
                           {getStatusBadge(request.status)}
                         </div>
 
                         <div className="mb-4">
-                          <h5 className="font-medium text-gray-700 mb-2">送信したメッセージ:</h5>
+                          <h5 className="font-medium text-gray-700 mb-2">{t.requests.sentMessage}:</h5>
                           <p className="text-gray-800 bg-gray-50 p-3 rounded border whitespace-pre-wrap">
                             {request.message}
                           </p>
@@ -284,13 +293,13 @@ export default function RequestPage() {
                             disabled={updatingRequest === request.id}
                             className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                           >
-                            {updatingRequest === request.id ? "処理中..." : "リクエストを取り消す"}
+                            {updatingRequest === request.id ? t.common.processing : t.requests.cancelRequest}
                           </button>
                         )}
 
                         {request.status !== 'pending' && (
                           <div className="text-sm text-gray-600">
-                            {formatDate(request.updatedAt)} に{request.status === 'accepted' ? '承認' : '拒否'}されました
+                            {formatDate(request.updatedAt)} {t.isJapanese ? 'に' : ''}{request.status === 'accepted' ? t.common.approved : t.common.rejected}{t.isJapanese ? 'されました' : ''}
                           </div>
                         )}
                       </div>
@@ -302,20 +311,22 @@ export default function RequestPage() {
               {/* ガイド応募（ガイド→観光客の募集） */}
               {sentApplications.length > 0 && (
                 <div>
-                  <h3 className="text-md font-medium mb-3">募集への応募</h3>
+                  <h3 className="text-md font-medium mb-3">{t.requests.applicationsToRecruitment}</h3>
                   <div className="space-y-4">
                     {sentApplications.map((application) => (
                       <div key={application.id} className="bg-white border rounded-lg shadow-sm p-6">
                         <div className="flex justify-between items-start mb-4">
                           <div>
-                            <h4 className="text-lg font-semibold">{application.guestName}さんの募集への応募</h4>
+                            <h4 className="text-lg font-semibold">
+                              {t.isJapanese ? `${application.guestName}さんの募集への応募` : `Application to ${application.guestName}'s job`}
+                            </h4>
                             <p className="text-sm text-gray-500">{formatDate(application.createdAt)}</p>
                           </div>
                           {getStatusBadge(application.status)}
                         </div>
 
                         <div className="mb-4">
-                          <h5 className="font-medium text-gray-700 mb-2">送信したメッセージ:</h5>
+                          <h5 className="font-medium text-gray-700 mb-2">{t.requests.sentMessage}:</h5>
                           <p className="text-gray-800 bg-gray-50 p-3 rounded border whitespace-pre-wrap">
                             {application.message}
                           </p>
@@ -327,13 +338,13 @@ export default function RequestPage() {
                             disabled={updatingRequest === application.id}
                             className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                           >
-                            {updatingRequest === application.id ? "処理中..." : "応募を取り消す"}
+                            {updatingRequest === application.id ? t.common.processing : t.requests.cancelApplication}
                           </button>
                         )}
 
                         {application.status !== 'pending' && (
                           <div className="text-sm text-gray-600">
-                            {formatDate(application.updatedAt)} に{application.status === 'accepted' ? '承認' : '拒否'}されました
+                            {formatDate(application.updatedAt)} {t.isJapanese ? 'に' : ''}{application.status === 'accepted' ? t.common.approved : t.common.rejected}{t.isJapanese ? 'されました' : ''}
                           </div>
                         )}
                       </div>
@@ -349,31 +360,33 @@ export default function RequestPage() {
       {/* 受信した申請 */}
       {activeTab === 'received' && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">受信した申請</h2>
+          <h2 className="text-lg font-semibold">{t.requests.receivedRequests}</h2>
           
           {getReceivedCount() === 0 ? (
             <div className="text-center py-10 text-gray-500">
-              <p>受信した申請はありません</p>
+              <p>{t.requests.noReceivedRequests}</p>
             </div>
           ) : (
             <div className="space-y-6">
               {/* マッチングリクエスト（観光客→ガイド） */}
               {receivedMatchingRequests.length > 0 && (
                 <div>
-                  <h3 className="text-md font-medium mb-3">観光客からのリクエスト</h3>
+                  <h3 className="text-md font-medium mb-3">{t.requests.requestsFromGuests}</h3>
                   <div className="space-y-4">
                     {receivedMatchingRequests.map((request) => (
                       <div key={request.id} className="bg-white border rounded-lg shadow-sm p-6">
                         <div className="flex justify-between items-start mb-4">
                           <div>
-                            <h4 className="text-lg font-semibold">{request.guestName}さんからのリクエスト</h4>
+                            <h4 className="text-lg font-semibold">
+                              {t.isJapanese ? `${request.guestName}さんからのリクエスト` : `Request from ${request.guestName}`}
+                            </h4>
                             <p className="text-sm text-gray-500">{formatDate(request.createdAt)}</p>
                           </div>
                           {getStatusBadge(request.status)}
                         </div>
 
                         <div className="mb-4">
-                          <h5 className="font-medium text-gray-700 mb-2">メッセージ:</h5>
+                          <h5 className="font-medium text-gray-700 mb-2">{t.common.message}:</h5>
                           <p className="text-gray-800 bg-gray-50 p-3 rounded border whitespace-pre-wrap">
                             {request.message}
                           </p>
@@ -386,21 +399,21 @@ export default function RequestPage() {
                               disabled={updatingRequest === request.id}
                               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                             >
-                              {updatingRequest === request.id ? "処理中..." : "承認"}
+                              {updatingRequest === request.id ? t.common.processing : t.common.accept}
                             </button>
                             <button
                               onClick={() => handleMatchingRequestStatusUpdate(request.id, 'rejected')}
                               disabled={updatingRequest === request.id}
                               className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                             >
-                              {updatingRequest === request.id ? "処理中..." : "拒否"}
+                              {updatingRequest === request.id ? t.common.processing : t.common.reject}
                             </button>
                           </div>
                         )}
 
                         {request.status !== 'pending' && (
                           <div className="text-sm text-gray-600">
-                            {formatDate(request.updatedAt)} に{request.status === 'accepted' ? '承認' : '拒否'}しました
+                            {formatDate(request.updatedAt)} {t.isJapanese ? 'に' : ''}{request.status === 'accepted' ? t.common.approved : t.common.rejected}{t.isJapanese ? 'しました' : ''}
                           </div>
                         )}
                       </div>
@@ -412,20 +425,22 @@ export default function RequestPage() {
               {/* ガイド応募（ガイド→観光客の募集） */}
               {receivedApplications.length > 0 && (
                 <div>
-                  <h3 className="text-md font-medium mb-3">募集への応募</h3>
+                  <h3 className="text-md font-medium mb-3">{t.requests.applicationsFromGuides}</h3>
                   <div className="space-y-4">
                     {receivedApplications.map((application) => (
                       <div key={application.id} className="bg-white border rounded-lg shadow-sm p-6">
                         <div className="flex justify-between items-start mb-4">
                           <div>
-                            <h4 className="text-lg font-semibold">{application.guideName}さんからの応募</h4>
+                            <h4 className="text-lg font-semibold">
+                              {t.isJapanese ? `${application.guideName}さんからの応募` : `Application from ${application.guideName}`}
+                            </h4>
                             <p className="text-sm text-gray-500">{formatDate(application.createdAt)}</p>
                           </div>
                           {getStatusBadge(application.status)}
                         </div>
 
                         <div className="mb-4">
-                          <h5 className="font-medium text-gray-700 mb-2">メッセージ:</h5>
+                          <h5 className="font-medium text-gray-700 mb-2">{t.common.message}:</h5>
                           <p className="text-gray-800 bg-gray-50 p-3 rounded border whitespace-pre-wrap">
                             {application.message}
                           </p>
@@ -438,21 +453,21 @@ export default function RequestPage() {
                               disabled={updatingRequest === application.id}
                               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                             >
-                              {updatingRequest === application.id ? "処理中..." : "承認"}
+                              {updatingRequest === application.id ? t.common.processing : t.common.accept}
                             </button>
                             <button
                               onClick={() => handleApplicationStatusUpdate(application.id, 'rejected')}
                               disabled={updatingRequest === application.id}
                               className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                             >
-                              {updatingRequest === application.id ? "処理中..." : "拒否"}
+                              {updatingRequest === application.id ? t.common.processing : t.common.reject}
                             </button>
                           </div>
                         )}
 
                         {application.status !== 'pending' && (
                           <div className="text-sm text-gray-600">
-                            {formatDate(application.updatedAt)} に{application.status === 'accepted' ? '承認' : '拒否'}しました
+                            {formatDate(application.updatedAt)} {t.isJapanese ? 'に' : ''}{application.status === 'accepted' ? t.common.approved : t.common.rejected}{t.isJapanese ? 'しました' : ''}
                           </div>
                         )}
                       </div>

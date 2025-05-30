@@ -1,13 +1,15 @@
-// src/app/profile/page.tsx
+// src/app/mypage/profile/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useTranslation } from "@/contexts/TranslationContext";
 import { getGuideProfile, getGuestProfile } from "@/firebase/firestore";
 
 export default function ProfileRouter() {
   const { user, userInfo, loading } = useAuthContext();
+  const { t } = useTranslation();
   const router = useRouter();
   const [checkingProfile, setCheckingProfile] = useState(true);
 
@@ -60,6 +62,6 @@ export default function ProfileRouter() {
   }, [user, userInfo, loading, router]);
 
   return (loading || checkingProfile) ? (
-    <div className="text-center py-10">読み込み中...</div>
+    <div className="text-center py-10">{t.common.loading}</div>
   ) : null;
 }

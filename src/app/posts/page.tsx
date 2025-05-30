@@ -1,8 +1,10 @@
+// src/app/posts/page.tsx
 'use client';
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useTranslation } from "@/contexts/TranslationContext";
 import { auth } from "@/firebase/firebaseConfig";
 import { 
   getAllGuestPosts,
@@ -15,6 +17,7 @@ import {
 export default function PostsPage() {
   const router = useRouter();
   const [user, loading] = useAuthState(auth);
+  const { t } = useTranslation();
   const [userRole, setUserRole] = useState<'guide' | 'guest' | null>(null);
   const [posts, setPosts] = useState<GuestPost[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
@@ -61,7 +64,8 @@ export default function PostsPage() {
   }, [user, loading]);
 
   const handleDeletePost = async (postId: string) => {
-    if (!confirm("この募集を削除しますか？")) {
+    const confirmMessage = t.isJapanese ? 'この募集を削除しますか？' : 'Are you sure you want to delete this job?';
+    if (!confirm(confirmMessage)) {
       return;
     }
 
@@ -69,10 +73,10 @@ export default function PostsPage() {
     try {
       await deleteGuestPost(postId);
       setPosts(prev => prev.filter(post => post.id !== postId));
-      alert("募集を削除しました。");
+      alert(t.success.postDeleted);
     } catch (error) {
       console.error("削除に失敗しました:", error);
-      alert("削除に失敗しました。もう一度お試しください。");
+      alert(t.errors.deleteError);
     } finally {
       setDeletingPost(null);
     }
@@ -88,7 +92,7 @@ export default function PostsPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ja-JP', {
+    return date.toLocaleDateString(t.isJapanese ? 'ja-JP' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -100,39 +104,45 @@ export default function PostsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">募集中</span>;
+        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">{t.common.active}</span>;
       case 'closed':
-        return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">募集終了</span>;
+        return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">{t.common.closed}</span>;
       default:
-        return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">不明</span>;
+        return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+          {t.isJapanese ? '不明' : 'Unknown'}
+        </span>;
     }
   };
 
   if (loading || pageLoading) {
-    return <div className="text-center py-10">読み込み中...</div>;
+    return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   if (!user || !userRole) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">📝 募集一覧</h1>
-        <p className="text-gray-600">ログインしてください。</p>
+        <h1 className="text-2xl font-bold mb-4">📝 {t.posts.postList}</h1>
+        <p className="text-gray-600">
+          {t.isJapanese ? 'ログインしてください。' : 'Please log in.'}
+        </p>
       </div>
     );
   }
+
+  const pageTitle = userRole === 'guide' ? t.posts.guideRecruitment : t.posts.myPosts;
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">
-          📝 {userRole === 'guide' ? 'ガイド募集一覧' : '私の募集一覧'}
+          📝 {pageTitle}
         </h1>
         {userRole === 'guest' && (
           <button
             onClick={handleCreatePost}
             className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
           >
-            新しい募集を作成
+            {t.posts.createPost}
           </button>
         )}
       </div>
@@ -141,8 +151,8 @@ export default function PostsPage() {
         <div className="text-center py-10 text-gray-500">
           <p>
             {userRole === 'guide' 
-              ? '現在募集中のガイド案件はありません' 
-              : 'まだ募集を作成していません'
+              ? (t.isJapanese ? '現在募集中のガイド案件はありません' : 'No guide jobs currently available')
+              : t.posts.noPosts
             }
           </p>
           {userRole === 'guest' && (
@@ -150,7 +160,7 @@ export default function PostsPage() {
               onClick={handleCreatePost}
               className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
             >
-              最初の募集を作成する
+              {t.posts.createFirstPost}
             </button>
           )}
         </div>
@@ -168,7 +178,7 @@ export default function PostsPage() {
 
               {userRole === 'guide' && (
                 <p className="text-sm text-gray-600 mb-2">
-                  投稿者: {post.guestName}
+                  {t.isJapanese ? '投稿者:' : 'Posted by:'} {post.guestName}
                 </p>
               )}
 
@@ -180,7 +190,7 @@ export default function PostsPage() {
                 {/* 言語の表示 - 配列の存在チェック */}
                 {post.languages && post.languages.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-600 mb-1">希望言語:</p>
+                    <p className="text-xs text-gray-600 mb-1">{t.posts.preferredLanguages}:</p>
                     <div className="flex flex-wrap gap-1">
                       {post.languages.map((language, index) => (
                         <span
@@ -197,7 +207,7 @@ export default function PostsPage() {
                 {/* エリアの表示 - 配列の存在チェック */}
                 {post.areas && post.areas.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-600 mb-1">希望エリア:</p>
+                    <p className="text-xs text-gray-600 mb-1">{t.posts.preferredAreas}:</p>
                     <div className="flex flex-wrap gap-1">
                       {post.areas.map((area, index) => (
                         <span
@@ -213,19 +223,19 @@ export default function PostsPage() {
 
                 {post.date && (
                   <p className="text-xs text-gray-600">
-                    希望日時: {post.date}
+                    {t.posts.preferredDate}: {post.date}
                   </p>
                 )}
 
                 {post.duration && (
                   <p className="text-xs text-gray-600">
-                    希望時間: {post.duration}
+                    {t.posts.preferredTime}: {post.duration}
                   </p>
                 )}
 
                 {post.budget && (
                   <p className="text-xs text-gray-600">
-                    予算: {post.budget}
+                    {t.common.budget}: {post.budget}
                   </p>
                 )}
               </div>
@@ -239,7 +249,7 @@ export default function PostsPage() {
                   onClick={() => handleViewPost(post.id)}
                   className="flex-1 bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600 transition"
                 >
-                  詳細を見る
+                  {t.isJapanese ? '詳細を見る' : 'View Details'}
                 </button>
                 
                 {userRole === 'guest' && (
@@ -248,7 +258,7 @@ export default function PostsPage() {
                     disabled={deletingPost === post.id}
                     className="bg-red-500 text-white px-3 py-2 rounded text-sm hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                   >
-                    {deletingPost === post.id ? "削除中..." : "削除"}
+                    {deletingPost === post.id ? t.common.processing : t.common.delete}
                   </button>
                 )}
               </div>

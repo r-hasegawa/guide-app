@@ -1,8 +1,10 @@
+// src/app/posts/[id]/page.tsx
 "use client";
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useTranslation } from "@/contexts/TranslationContext";
 import { auth } from "@/firebase/firebaseConfig";
 import { 
   getGuestPost, 
@@ -21,6 +23,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const { id } = use(params);
   const router = useRouter();
   const [user, loading, error] = useAuthState(auth);
+  const { t } = useTranslation();
   const [post, setPost] = useState<GuestPost | null>(null);
   const [guideName, setGuideName] = useState<string>("");
   const [pageLoading, setPageLoading] = useState(true);
@@ -78,18 +81,29 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
       setApplicationMessage("");
     } catch (error) {
       console.error("応募の送信に失敗しました:", error);
-      alert("応募の送信に失敗しました。もう一度お試しください。");
+      alert(t.errors.sendError);
     } finally {
       setSending(false);
     }
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(t.isJapanese ? 'ja-JP' : 'en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   if (loading || pageLoading) {
-    return <div className="text-center py-10">読み込み中...</div>;
+    return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   if (!post) {
-    return <div className="text-center py-10">募集が見つかりません</div>;
+    return <div className="text-center py-10">
+      {t.isJapanese ? '募集が見つかりません' : 'Job posting not found'}
+    </div>;
   }
 
   return (
@@ -98,7 +112,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         onClick={() => router.back()}
         className="mb-4 text-blue-500 hover:text-blue-700 flex items-center gap-1"
       >
-        ← 戻る
+        ← {t.common.back}
       </button>
 
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -107,14 +121,16 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         <div className="grid gap-6 md:grid-cols-2">
           <div>
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">投稿者</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {t.isJapanese ? '投稿者' : 'Posted by'}
+              </h3>
               <p className="text-gray-700">{post.guestName}</p>
             </div>
 
             {/* 言語の表示 - 配列の存在チェック */}
             {post.languages && post.languages.length > 0 && (
               <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">希望言語</h3>
+                <h3 className="text-lg font-semibold mb-2">{t.posts.preferredLanguages}</h3>
                 <div className="flex flex-wrap gap-2">
                   {post.languages.map((language, index) => (
                     <span
@@ -131,7 +147,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
             {/* エリアの表示 - 配列の存在チェック */}
             {post.areas && post.areas.length > 0 && (
               <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">希望エリア</h3>
+                <h3 className="text-lg font-semibold mb-2">{t.posts.preferredAreas}</h3>
                 <div className="flex flex-wrap gap-2">
                   {post.areas.map((area, index) => (
                     <span
@@ -147,39 +163,35 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
             {post.budget && (
               <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">予算</h3>
+                <h3 className="text-lg font-semibold mb-2">{t.common.budget}</h3>
                 <p className="text-gray-700">{post.budget}</p>
               </div>
             )}
 
             {post.duration && (
               <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">希望時間</h3>
+                <h3 className="text-lg font-semibold mb-2">{t.posts.preferredTime}</h3>
                 <p className="text-gray-700">{post.duration}</p>
               </div>
             )}
 
             {post.date && (
               <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">希望日時</h3>
+                <h3 className="text-lg font-semibold mb-2">{t.posts.preferredDate}</h3>
                 <p className="text-gray-700">{post.date}</p>
               </div>
             )}
 
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">投稿日</h3>
-              <p className="text-gray-700">
-                {new Date(post.createdAt).toLocaleDateString('ja-JP', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </p>
+              <h3 className="text-lg font-semibold mb-2">
+                {t.isJapanese ? '投稿日' : 'Posted on'}
+              </h3>
+              <p className="text-gray-700">{formatDate(post.createdAt)}</p>
             </div>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold mb-2">詳細</h3>
+            <h3 className="text-lg font-semibold mb-2">{t.posts.description}</h3>
             <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
               {post.description}
             </p>
@@ -189,7 +201,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
         {/* 応募送信セクション */}
         {user && guideName && (
           <div className="mt-8 border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4">この募集に応募する</h3>
+            <h3 className="text-lg font-semibold mb-4">{t.posts.applyToPost}</h3>
             
             {applicationSent ? (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -198,24 +210,27 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     <span className="text-white text-xs">✓</span>
                   </div>
                   <span className="text-green-800 font-medium">
-                    応募を送信しました！
+                    {t.posts.applicationSent}
                   </span>
                 </div>
                 <p className="text-green-700 text-sm mt-2">
-                  観光客からの返答をお待ちください。
+                  {t.requests.waitingForResponse}
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium mb-2">
-                    応募メッセージ（必須）
+                    {t.posts.applicationMessage} ({t.common.required})
                   </label>
                   <textarea
                     id="message"
                     value={applicationMessage}
                     onChange={(e) => setApplicationMessage(e.target.value)}
-                    placeholder="自己紹介や対応可能な内容、料金などを記載してください"
+                    placeholder={t.isJapanese
+                      ? "自己紹介や対応可能な内容、料金などを記載してください"
+                      : "Please describe your self-introduction, what you can offer, rates, etc."
+                    }
                     rows={4}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -226,7 +241,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                   disabled={!applicationMessage.trim() || sending}
                   className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                 >
-                  {sending ? "送信中..." : "応募する"}
+                  {sending ? t.common.processing : t.common.apply}
                 </button>
               </div>
             )}
@@ -238,13 +253,16 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           <div className="mt-8 border-t pt-6">
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <p className="text-gray-700">
-                この募集に応募するには、ガイドとしてログインしてください。
+                {t.isJapanese
+                  ? 'この募集に応募するには、ガイドとしてログインしてください。'
+                  : 'To apply to this job, please log in as a guide.'
+                }
               </p>
               <button
                 onClick={() => router.push("/login")}
                 className="mt-3 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
               >
-                ログイン
+                {t.auth.login}
               </button>
             </div>
           </div>

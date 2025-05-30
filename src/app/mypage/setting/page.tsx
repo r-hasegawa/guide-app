@@ -1,10 +1,10 @@
 // src/app/mypage/setting/page.tsx
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { updateUserSettings } from '@/firebase/firestore';
 
 interface Settings {
@@ -17,6 +17,7 @@ interface Settings {
 
 export default function SettingPage() {
   const { user, userInfo, loading, refreshUserInfo } = useAuthContext();
+  const { t } = useTranslation();
   const router = useRouter();
   const [settings, setSettings] = useState<Settings>({
     notifications: {
@@ -92,17 +93,22 @@ export default function SettingPage() {
       // AuthContextの情報を更新
       await refreshUserInfo();
       
-      alert('設定を保存しました');
+      // 言語変更時は即座に反映されるよう、ページをリロード
+      if (settings.language !== userInfo?.language) {
+        window.location.reload();
+      } else {
+        alert(t.success.settingsSaved);
+      }
     } catch (error) {
       console.error('設定の保存に失敗しました:', error);
-      alert('設定の保存に失敗しました');
+      alert(t.errors.saveError);
     } finally {
       setIsSaving(false);
     }
   };
 
   if (loading) {
-    return <div className="text-center py-10">読み込み中...</div>;
+    return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   if (!user) {
@@ -110,7 +116,7 @@ export default function SettingPage() {
   }
 
   if (!userInfo) {
-    return <div className="text-center py-10">ユーザー情報を読み込み中...</div>;
+    return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   return (
@@ -120,22 +126,22 @@ export default function SettingPage() {
           onClick={() => router.back()}
           className="mr-4 text-blue-500 hover:text-blue-700"
         >
-          ← 戻る
+          ← {t.common.back}
         </button>
-        <h1 className="text-2xl font-bold">⚙️ 設定</h1>
+        <h1 className="text-2xl font-bold">⚙️ {t.settings.settings}</h1>
       </div>
 
       <div className="space-y-6">
         {/* 通知設定 */}
         <div className="bg-white border rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">🔔 通知設定</h2>
+          <h2 className="text-lg font-semibold mb-4">🔔 {t.settings.notifications}</h2>
           
           <div className="space-y-6">
             {/* メール通知のON/OFF */}
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-gray-800">メール通知</h3>
-                <p className="text-sm text-gray-600">新しいリクエストやメッセージをメールで受け取ります</p>
+                <h3 className="font-medium text-gray-800">{t.settings.emailNotifications}</h3>
+                <p className="text-sm text-gray-600">{t.settings.emailNotificationDesc}</p>
               </div>
               <button
                 onClick={handleEmailNotificationToggle}
@@ -154,8 +160,8 @@ export default function SettingPage() {
             {/* プッシュ通知のON/OFF */}
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-gray-800">プッシュ通知</h3>
-                <p className="text-sm text-gray-600">新しいリクエストやメッセージをプッシュ通知で受け取ります</p>
+                <h3 className="font-medium text-gray-800">{t.settings.pushNotifications}</h3>
+                <p className="text-sm text-gray-600">{t.settings.pushNotificationDesc}</p>
               </div>
               <button
                 onClick={handlePushNotificationToggle}
@@ -175,7 +181,7 @@ export default function SettingPage() {
 
         {/* 言語設定 */}
         <div className="bg-white border rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">🌐 言語設定</h2>
+          <h2 className="text-lg font-semibold mb-4">🌐 {t.settings.languageSettings}</h2>
           
           <div className="space-y-2">
             <label className="flex items-center">
@@ -206,13 +212,13 @@ export default function SettingPage() {
             disabled={isSaving}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            {isSaving ? '保存中...' : '設定を保存'}
+            {isSaving ? t.common.processing : t.settings.saveSettings}
           </button>
         </div>
 
         {/* その他のページへのリンク */}
         <div className="bg-white border rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">📄 サポート情報</h2>
+          <h2 className="text-lg font-semibold mb-4">📄 {t.settings.supportInfo}</h2>
           
           <div className="space-y-3">
             <button
@@ -221,8 +227,10 @@ export default function SettingPage() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-medium text-gray-800">会社情報</h3>
-                  <p className="text-sm text-gray-600">運営会社についての情報</p>
+                  <h3 className="font-medium text-gray-800">{t.settings.companyInfo}</h3>
+                  <p className="text-sm text-gray-600">
+                    {t.isJapanese ? '運営会社についての情報' : 'Information about the operating company'}
+                  </p>
                 </div>
                 <span className="text-gray-400">→</span>
               </div>
@@ -234,8 +242,10 @@ export default function SettingPage() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-medium text-gray-800">利用規約</h3>
-                  <p className="text-sm text-gray-600">サービス利用に関する規約</p>
+                  <h3 className="font-medium text-gray-800">{t.settings.termsOfService}</h3>
+                  <p className="text-sm text-gray-600">
+                    {t.isJapanese ? 'サービス利用に関する規約' : 'Terms and conditions for service use'}
+                  </p>
                 </div>
                 <span className="text-gray-400">→</span>
               </div>
@@ -247,8 +257,10 @@ export default function SettingPage() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-medium text-gray-800">プライバシーポリシー</h3>
-                  <p className="text-sm text-gray-600">個人情報の取り扱いについて</p>
+                  <h3 className="font-medium text-gray-800">{t.settings.privacyPolicy}</h3>
+                  <p className="text-sm text-gray-600">
+                    {t.isJapanese ? '個人情報の取り扱いについて' : 'How we handle personal information'}
+                  </p>
                 </div>
                 <span className="text-gray-400">→</span>
               </div>

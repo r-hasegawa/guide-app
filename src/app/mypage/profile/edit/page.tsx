@@ -1,8 +1,11 @@
+// src/app/mypage/profile/edit/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { LANGUAGE_OPTIONS, AREA_OPTIONS } from "@/constants/options";
 import {
   saveGuideProfile,
   saveGuestProfile,
@@ -12,11 +15,9 @@ import {
   GuestProfile
 } from "@/firebase/firestore";
 
-const LANGUAGE_OPTIONS = ["英語", "中国語", "フランス語", "ドイツ語", "スペイン語"];
-const AREA_OPTIONS = ["東京", "大阪", "京都", "奈良", "福岡"];
-
 export default function ProfileEditPage() {
   const { user, userInfo, loading, refreshUserInfo } = useAuthContext();
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,28 +111,28 @@ export default function ProfileEditPage() {
     setError(""); // Clear previous errors
     if (userInfo?.role === 'guide') {
       if (!guideProfile.name.trim()) {
-        setError("名前を入力してください。");
+        setError(t.isJapanese ? "名前を入力してください。" : "Please enter your name.");
         return false;
       }
       if (guideProfile.languages.length === 0) {
-        setError("話せる言語を少なくとも1つ選択してください。");
+        setError(t.isJapanese ? "話せる言語を少なくとも1つ選択してください。" : "Please select at least one language you can speak.");
         return false;
       }
       if (guideProfile.areas.length === 0) {
-        setError("対応エリアを少なくとも1つ選択してください。");
+        setError(t.isJapanese ? "対応エリアを少なくとも1つ選択してください。" : "Please select at least one area you can guide.");
         return false;
       }
       if (!guideProfile.introduction?.trim()) {
-        setError("自己紹介を入力してください。");
+        setError(t.isJapanese ? "自己紹介を入力してください。" : "Please enter your self-introduction.");
         return false;
       }
     } else { // userInfo.role === 'guest'
       if (!guestProfile.name.trim()) {
-        setError("名前を入力してください。");
+        setError(t.isJapanese ? "名前を入力してください。" : "Please enter your name.");
         return false;
       }
       if (guestProfile.languages.length === 0) {
-        setError("話せる言語を少なくとも1つ選択してください。");
+        setError(t.isJapanese ? "話せる言語を少なくとも1つ選択してください。" : "Please select at least one language you can speak.");
         return false;
       }
     }
@@ -162,14 +163,14 @@ export default function ProfileEditPage() {
       router.push("/mypage/profile/view");
     } catch (err) {
       console.error("保存エラー:", err);
-      setError("プロフィールの保存に失敗しました。もう一度お試しください。");
+      setError(t.errors.saveError);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (loading || !userInfo) {
-    return <div className="text-center py-10">読み込み中...</div>;
+    return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   const isGuide = userInfo.role === 'guide';
@@ -177,14 +178,14 @@ export default function ProfileEditPage() {
   return (
     <main className="max-w-2xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">
-        {isGuide ? 'ガイドプロフィール編集' : '観光客プロフィール編集'}
+        {isGuide ? t.profile.guideProfile : t.profile.guestProfile}{t.profile.profileEdit}
       </h1>
 
       <div className="space-y-6">
         {/* 名前 */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            名前 <span className="text-red-500">*</span>
+            {t.common.name} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -194,7 +195,7 @@ export default function ProfileEditPage() {
               : handleGuestInputChange('name', e.target.value)
             }
             className="w-full border rounded px-3 py-2"
-            placeholder="山田 太郎"
+            placeholder={t.isJapanese ? "山田 太郎" : "John Doe"}
           />
         </div>
 
@@ -203,7 +204,7 @@ export default function ProfileEditPage() {
             {/* ガイド用フィールド */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                対応言語 <span className="text-red-500">*</span>
+                {t.profile.supportedLanguages} <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {LANGUAGE_OPTIONS.map((lang) => (
@@ -221,7 +222,7 @@ export default function ProfileEditPage() {
 
             <div>
               <label className="block text-sm font-medium mb-2">
-                対応エリア <span className="text-red-500">*</span>
+                {t.profile.supportedAreas} <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {AREA_OPTIONS.map(area => (
@@ -239,14 +240,14 @@ export default function ProfileEditPage() {
 
             <div>
               <label className="block text-sm font-medium mb-2">
-                自己紹介 <span className="text-red-500">*</span>
+                {t.profile.selfIntroduction} <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={guideProfile.introduction || ""}
                 onChange={(e) => handleGuideInputChange('introduction', e.target.value)}
                 rows={4}
                 className="w-full border rounded px-3 py-2"
-                placeholder="あなたのガイド経験や特徴を教えてください"
+                placeholder={t.isJapanese ? "あなたのガイド経験や特徴を教えてください" : "Please tell us about your guiding experience and characteristics"}
               />
             </div>
           </>
@@ -255,7 +256,7 @@ export default function ProfileEditPage() {
             {/* 観光客用フィールド */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                話せる言語 <span className="text-red-500">*</span>
+                {t.profile.spokenLanguages} <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {LANGUAGE_OPTIONS.map(lang => (
@@ -273,14 +274,14 @@ export default function ProfileEditPage() {
 
             <div>
               <label className="block text-sm font-medium mb-2">
-                自己紹介 (任意)
+                {t.profile.selfIntroduction} ({t.common.optional})
               </label>
               <textarea
                 value={guestProfile.introduction || ""}
                 onChange={(e) => handleGuestInputChange('introduction', e.target.value)}
                 rows={4}
                 className="w-full border rounded px-3 py-2"
-                placeholder="あなたの興味や日本での過ごし方について教えてください"
+                placeholder={t.isJapanese ? "あなたの興味や日本での過ごし方について教えてください" : "Please tell us about your interests and how you'd like to spend time in Japan"}
               />
             </div>
           </>
@@ -298,14 +299,14 @@ export default function ProfileEditPage() {
             className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50"
             disabled={isSubmitting}
           >
-            キャンセル
+            {t.common.cancel}
           </button>
           <button
             onClick={handleSave}
             disabled={isSubmitting}
             className="flex-1 bg-blue-600 text-white py-2 px-6 rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            {isSubmitting ? '保存中...' : '保存する'}
+            {isSubmitting ? t.common.processing : t.common.save}
           </button>
         </div>
       </div>

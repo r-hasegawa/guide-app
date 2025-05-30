@@ -1,8 +1,10 @@
+// src/app/guides/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useTranslation } from "@/contexts/TranslationContext";
 import { auth } from "@/firebase/firebaseConfig";
 import { 
   getAllGuideProfiles, 
@@ -18,6 +20,7 @@ interface GuideWithId extends GuideProfile {
 export default function GuidesPage() {
   const router = useRouter();
   const [user, loading] = useAuthState(auth);
+  const { t } = useTranslation();
   const [guides, setGuides] = useState<GuideWithId[]>([]);
   const [filteredGuides, setFilteredGuides] = useState<GuideWithId[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
@@ -129,19 +132,19 @@ export default function GuidesPage() {
   };
 
   if (loading || pageLoading) {
-    return <div className="text-center py-10">読み込み中...</div>;
+    return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   return (
     <main className="max-w-6xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">ガイド一覧</h1>
+      <h1 className="text-3xl font-bold mb-6">{t.guides.guideList}</h1>
       
       {/* フィルターセクション */}
       <div className="bg-white p-4 rounded-lg mb-6">
         <div className="flex flex-wrap gap-4 mb-4">
           {/* 言語フィルター */}
           <div>
-            <h3 className="font-semibold mb-2">言語で絞り込み</h3>
+            <h3 className="font-semibold mb-2">{t.guides.filterByLanguage}</h3>
             <div className="flex flex-wrap gap-2">
               {availableLanguages.map(language => (
                 <button
@@ -161,7 +164,7 @@ export default function GuidesPage() {
 
           {/* エリアフィルター */}
           <div>
-            <h3 className="font-semibold mb-2">エリアで絞り込み</h3>
+            <h3 className="font-semibold mb-2">{t.guides.filterByArea}</h3>
             <div className="flex flex-wrap gap-2">
               {availableAreas.map(area => (
                 <button
@@ -186,20 +189,20 @@ export default function GuidesPage() {
             onClick={clearFilters}
             className="text-red-500 hover:text-red-700 text-sm font-medium"
           >
-            フィルターをクリア
+            {t.guides.clearFilters}
           </button>
         )}
       </div>
 
       {/* 検索結果数 */}
       <p className="mb-4">
-        {filteredGuides.length}件のガイドが見つかりました
+        {filteredGuides.length}{t.guides.guidesFound}
       </p>
 
       {/* ガイド一覧 */}
       {filteredGuides.length === 0 ? (
         <div className="text-center py-10">
-          条件に合うガイドが見つかりませんでした
+          {t.guides.noGuidesFound}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -212,7 +215,7 @@ export default function GuidesPage() {
               <h2 className="text-xl font-semibold mb-2">{guide.name}</h2>
               
               <div className="mb-2">
-                <p className="text-sm text-gray-600 mb-1">対応言語:</p>
+                <p className="text-sm text-gray-600 mb-1">{t.profile.supportedLanguages}:</p>
                 <div className="flex flex-wrap gap-1">
                   {guide.languages.map(language => (
                     <span
@@ -226,7 +229,7 @@ export default function GuidesPage() {
               </div>
 
               <div className="mb-3">
-                <p className="text-sm text-gray-600 mb-1">対応エリア:</p>
+                <p className="text-sm text-gray-600 mb-1">{t.profile.supportedAreas}:</p>
                 <div className="flex flex-wrap gap-1">
                   {guide.areas.map(area => (
                     <span

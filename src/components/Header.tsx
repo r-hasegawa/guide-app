@@ -1,14 +1,16 @@
-// components/Header.tsx (コンパクト版)
+// src/components/Header.tsx
 "use client";
 
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useTranslation } from "@/contexts/TranslationContext";
 import { signOut } from "firebase/auth";
 import { auth } from "@/firebase/firebaseConfig";
 
 export default function Header() {
   const { user, userInfo, loading } = useAuthContext();
+  const { t } = useTranslation();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -18,7 +20,8 @@ export default function Header() {
   // 確認ダイアログ付きのログアウト処理
   const handleLogoutWithConfirmation = async () => {
     // 確認ダイアログを表示
-    const confirmLogout = window.confirm('ログアウトしますか？');
+    const confirmMessage = t.isJapanese ? 'ログアウトしますか？' : 'Are you sure you want to logout?';
+    const confirmLogout = window.confirm(confirmMessage);
     
     if (!confirmLogout) {
       return; // ユーザーがキャンセルした場合は何もしない
@@ -32,14 +35,14 @@ export default function Header() {
       // TOPページにリダイレクト（replace使用で履歴を残さない）
       router.replace('/');
       
-      // 成功メッセージ（オプション）
-      // alert('ログアウトしました');
-      
     } catch (error) {
       console.error('ログアウトエラー:', error);
       
       // エラーメッセージを表示（オプション）
-      alert('ログアウト中にエラーが発生しましたが、TOPページに移動します。');
+      const errorMessage = t.isJapanese 
+        ? 'ログアウト中にエラーが発生しましたが、TOPページに移動します。'
+        : 'An error occurred during logout, but you will be redirected to the top page.';
+      alert(errorMessage);
       
       // エラーが発生してもTOPページにリダイレクト
       router.replace('/');
@@ -48,32 +51,39 @@ export default function Header() {
 
   // ユーザーステータスを組み合わせたアイコンと色を決定
   const getUserStatusInfo = () => {
-    if (!userInfo) return { icon: '👤', text: 'ロード中', color: 'text-gray-500' };
+    if (!userInfo) return { 
+      icon: '👤', 
+      text: t.common.loading, 
+      color: 'text-gray-500' 
+    };
 
-    const role = userInfo.role === 'guide' ? 'ガイド' : '観光客';
+    const role = userInfo.role === 'guide' ? t.roles.guide : t.roles.guest;
     const roleIcon = userInfo.role === 'guide' ? '🎓' : '✈️';
     
     if (!userInfo.activated) {
+      const statusText = t.isJapanese ? `${role}(未認証)` : `${role} (Unverified)`;
       return { 
         icon: '⚠️', 
-        text: `${role}(未認証)`, 
+        text: statusText, 
         color: 'text-red-600',
         needsAttention: true 
       };
     }
     
     if (!userInfo.profileCompleted) {
+      const statusText = t.isJapanese ? `${role}(設定中)` : `${role} (Setup)`;
       return { 
         icon: '📝', 
-        text: `${role}(設定中)`, 
+        text: statusText, 
         color: 'text-orange-600',
         needsAttention: true 
       };
     }
     
+    const statusText = t.isJapanese ? `${role}(準備完了)` : `${role} (Ready)`;
     return { 
       icon: roleIcon, 
-      text: `${role}(準備完了)`, 
+      text: statusText, 
       color: 'text-green-600',
       needsAttention: false 
     };
@@ -96,7 +106,7 @@ export default function Header() {
                     {userInfo.role === 'guide' ? '🎓' : '✈️'}
                   </span>
                   <span className="text-xs text-gray-600">
-                    {userInfo.role === 'guide' ? 'ガイド' : '観光客'}
+                    {userInfo.role === 'guide' ? t.roles.guide : t.roles.guest}
                   </span>
                 </div>
               )}
@@ -108,31 +118,22 @@ export default function Header() {
                     {userInfo.activated ? '✅' : '⚠️'}
                   </span>
                   <span className={`text-xs ${userInfo.activated ? 'text-green-600' : 'text-red-600'}`}>
-                    {userInfo.activated ? '認証済み' : '未認証'}
+                    {userInfo.activated 
+                      ? (t.isJapanese ? '認証済み' : 'Verified')
+                      : (t.isJapanese ? '未認証' : 'Unverified')
+                    }
                   </span>
                 </div>
               )}
-
-              {/* プロフィール完了状態の表示 */}
-              {/*{userInfo && (
-                <div className="flex flex-col items-center mr-4">
-                  <span className="text-lg" role="img" aria-label="profile status">
-                    {userInfo.profileCompleted ? '👤' : '📝'}
-                  </span>
-                  <span className={`text-xs ${userInfo.profileCompleted ? 'text-blue-600' : 'text-orange-600'}`}>
-                    {userInfo.profileCompleted ? '完了' : '設定中'}
-                  </span>
-                </div>
-              )}*/}
 
               {/* ログアウトボタンをアイコンと文字で表示 */}
               <button
                 onClick={handleLogoutWithConfirmation}
                 className="flex flex-col items-center text-gray-700 hover:text-red-600 focus:outline-none"
-                aria-label="ログアウト"
+                aria-label={t.nav.logout}
               >
                 <span role="img" aria-label="logout" className="text-xl">🚪</span>
-                <span className="text-xs text-gray-600 mt-0.5">ログアウト</span>
+                <span className="text-xs text-gray-600 mt-0.5">{t.nav.logout}</span>
               </button>
             </>
           ) : (

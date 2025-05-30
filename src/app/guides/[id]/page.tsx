@@ -1,8 +1,10 @@
+// src/app/guides/[id]/page.tsx
 "use client";
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useTranslation } from "@/contexts/TranslationContext";
 import { auth } from "@/firebase/firebaseConfig";
 import { 
   getGuideProfile, 
@@ -21,6 +23,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
   const { id } = use(params);
   const router = useRouter();
   const [user, loading, error] = useAuthState(auth);
+  const { t } = useTranslation();
   const [guide, setGuide] = useState<GuideProfile | null>(null);
   const [guestName, setGuestName] = useState<string>("");
   const [pageLoading, setPageLoading] = useState(true);
@@ -77,18 +80,20 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
       setRequestMessage("");
     } catch (error) {
       console.error("リクエストの送信に失敗しました:", error);
-      alert("リクエストの送信に失敗しました。もう一度お試しください。");
+      alert(t.errors.sendError);
     } finally {
       setSending(false);
     }
   };
 
   if (loading || pageLoading) {
-    return <div className="text-center py-10">読み込み中...</div>;
+    return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   if (!guide) {
-    return <div className="text-center py-10">ガイドが見つかりません</div>;
+    return <div className="text-center py-10">
+      {t.isJapanese ? 'ガイドが見つかりません' : 'Guide not found'}
+    </div>;
   }
 
   return (
@@ -97,7 +102,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
         onClick={() => router.back()}
         className="mb-4 text-blue-500 hover:text-blue-700 flex items-center gap-1"
       >
-        ← 戻る
+        ← {t.common.back}
       </button>
 
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -106,7 +111,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
         <div className="grid gap-6 md:grid-cols-2">
           <div>
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">対応言語</h3>
+              <h3 className="text-lg font-semibold mb-2">{t.profile.supportedLanguages}</h3>
               <div className="flex flex-wrap gap-2">
                 {guide.languages.map(language => (
                   <span
@@ -120,7 +125,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
             </div>
 
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">対応エリア</h3>
+              <h3 className="text-lg font-semibold mb-2">{t.profile.supportedAreas}</h3>
               <div className="flex flex-wrap gap-2">
                 {guide.areas.map(area => (
                   <span
@@ -136,7 +141,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
 
           {guide.introduction && (
             <div>
-              <h3 className="text-lg font-semibold mb-2">自己紹介</h3>
+              <h3 className="text-lg font-semibold mb-2">{t.profile.selfIntroduction}</h3>
               <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                 {guide.introduction}
               </p>
@@ -147,7 +152,9 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
         {/* リクエスト送信セクション */}
         {user && guestName && (
           <div className="mt-8 border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4">マッチングリクエストを送信</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              {t.isJapanese ? 'マッチングリクエストを送信' : 'Send Matching Request'}
+            </h3>
             
             {requestSent ? (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -156,24 +163,27 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
                     <span className="text-white text-xs">✓</span>
                   </div>
                   <span className="text-green-800 font-medium">
-                    リクエストを送信しました！
+                    {t.guides.requestSent}
                   </span>
                 </div>
                 <p className="text-green-700 text-sm mt-2">
-                  ガイドからの返答をお待ちください。
+                  {t.requests.waitingForResponse}
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium mb-2">
-                    メッセージ（必須）
+                    {t.common.message} ({t.common.required})
                   </label>
                   <textarea
                     id="message"
                     value={requestMessage}
                     onChange={(e) => setRequestMessage(e.target.value)}
-                    placeholder="ガイドに伝えたいことを書いてください（希望する日時、場所、特別なリクエストなど）"
+                    placeholder={t.isJapanese 
+                      ? "ガイドに伝えたいことを書いてください（希望する日時、場所、特別なリクエストなど）"
+                      : "Please write what you want to tell the guide (desired date/time, location, special requests, etc.)"
+                    }
                     rows={4}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -184,7 +194,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
                   disabled={!requestMessage.trim() || sending}
                   className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                 >
-                  {sending ? "送信中..." : "リクエストを送信"}
+                  {sending ? t.common.processing : t.guides.sendRequest}
                 </button>
               </div>
             )}
@@ -196,13 +206,16 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
           <div className="mt-8 border-t pt-6">
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <p className="text-gray-700">
-                このガイドにリクエストを送信するには、観光客としてログインしてください。
+                {t.isJapanese
+                  ? 'このガイドにリクエストを送信するには、観光客としてログインしてください。'
+                  : 'To send a request to this guide, please log in as a tourist.'
+                }
               </p>
               <button
                 onClick={() => router.push("/login")}
                 className="mt-3 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
               >
-                ログイン
+                {t.auth.login}
               </button>
             </div>
           </div>
