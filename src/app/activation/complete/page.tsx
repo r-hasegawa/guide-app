@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { updateActivationStatus } from '@/firebase/firestore';
 
 export default function ActivationCompletePage() {
   const { user, userInfo, loading, refreshUserInfo } = useAuthContext();
@@ -30,10 +29,7 @@ export default function ActivationCompletePage() {
         console.log('Email verification status:', user.emailVerified);
         
         if (user.emailVerified) {
-          // Firestoreのactivatedフィールドを更新
-          await updateActivationStatus(user.uid, true);
-
-          console.log('Updated activated status in Firestore');
+          console.log('Email verified successfully');
 
           // AuthContextの情報を更新
           await refreshUserInfo();

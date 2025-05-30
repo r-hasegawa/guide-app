@@ -1,3 +1,4 @@
+// src/components/SessionWrapper.tsx
 "use client"; // クライアントサイドのフックを使用するため、'use client' ディレクティブが必要です。
 
 import { useEffect } from "react";
@@ -41,7 +42,7 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
       userInfo: userInfo,
       pathname,
       profileCompleted: userInfo?.profileCompleted,
-      activated: userInfo?.activated,
+      emailVerified: user?.emailVerified, // Firebase Authのemail_verifiedを使用
       role: userInfo?.role
     });
 
@@ -73,16 +74,17 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
     // 一般ユーザー（guide/guest）のリダイレクト優先順位
     // ==========================================
 
-    // 【最優先】アクティベーション未完了 → 認証待機ページ
-    if (user && userInfo && !userInfo.activated && pathname !== '/activation/pending') {
-      console.log('Redirecting to activation pending: not activated');
+    // 【最優先】メール認証未完了 → 認証待機ページ
+    // Firebase Authのemail_verifiedを使用
+    if (user && userInfo && !user.emailVerified && pathname !== '/activation/pending') {
+      console.log('Redirecting to activation pending: email not verified');
       router.replace('/activation/pending');
       return;
     }
     
     // 【次の優先】プロフィール未完了 → オンボーディング
-    // アクティベーション状態の場合は、プロフィール設定へ
-    if (user && userInfo && !userInfo.profileCompleted && userInfo.activated && pathname !== ONBOARDING_PATH) {
+    // メール認証完了済みの場合は、プロフィール設定へ
+    if (user && userInfo && !userInfo.profileCompleted && user.emailVerified && pathname !== ONBOARDING_PATH) {
       console.log('Redirecting to onboarding: profile incomplete');
       router.replace(ONBOARDING_PATH);
       return;
@@ -93,7 +95,7 @@ export function SessionWrapper({ children }: { children: React.ReactNode }) {
     // 現在のパスがオンボーディングページである場合
     // マイページにリダイレクトします。
     // これにより、すでにオンボーディングを完了しているユーザーが再度オンボーディングページにアクセスするのを防ぎます。
-    if (user && userInfo && userInfo.profileCompleted && userInfo.activated && pathname === ONBOARDING_PATH) {
+    if (user && userInfo && userInfo.profileCompleted && user.emailVerified && pathname === ONBOARDING_PATH) {
       console.log('Redirecting from onboarding to mypage: already completed');
       router.replace('/mypage');
       return;

@@ -44,7 +44,7 @@ export interface UserBasicInfo {
   email: string;
   createdAt: string;
   profileCompleted: boolean;
-  activated: boolean;
+  activated: boolean; // 残すがデフォルトfalse、使用しない
   language: 'ja' | 'en';
   notifications: {
     email: boolean;
@@ -208,29 +208,15 @@ export const updateUserSettings = async (uid: string, settings: { language: 'ja'
   }
 };
 
+// activated フィールドを更新する関数は残すが、実際には使用しない
+// 将来的に完全削除する際の互換性のため
 export const updateActivationStatus = async (uid: string, activated: boolean) => {
   if (isServer) return;
   
-  const db = await getFirestore();
-  if (!db) {
-    console.error("Firestore not initialized");
-    return;
-  }
+  console.log('updateActivationStatus called but no longer used. Using Firebase Auth emailVerified instead.');
   
-  const functions = await loadFirestoreFunctions();
-  if (!functions.updateDoc || !functions.doc) {
-    console.error("Firestore functions not loaded");
-    return;
-  }
-  
-  try {
-    await functions.updateDoc(functions.doc(db, "users", uid), {
-      activated: activated
-    });
-  } catch (error) {
-    console.error("Error updating activation status:", error);
-    throw error;
-  }
+  // 何もしない（将来の削除に備えて空の関数として残す）
+  return;
 };
 
 // ========== お知らせ関連 ==========
@@ -990,5 +976,133 @@ export const getAppliedPostIds = async (guideId: string): Promise<string[]> => {
   } catch (error) {
     console.error("Error getting applied post IDs:", error);
     return [];
+  }
+};
+
+
+// ========== 管理者専用 - ユーザー管理関連 ==========
+
+// 全ユーザー情報を取得（管理者のみ）
+export const getAllUsers = async (): Promise<(UserBasicInfo & { id: string })[]> => {
+  if (isServer) return [];
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return [];
+  }
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.getDocs || !functions.collection || !functions.orderBy || !functions.query) {
+    console.error("Firestore functions not loaded");
+    return [];
+  }
+  
+  try {
+    const q = functions.query(
+      functions.collection(db, "users"),
+      functions.orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await functions.getDocs(q);
+    return querySnapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt || new Date().toISOString() // Fallback for old data
+    } as UserBasicInfo & { id: string }));
+  } catch (error) {
+    console.error("Error getting all users:", error);
+    return [];
+  }
+};
+
+// ユーザーのactivated状態を更新（管理者のみ）
+export const updateUserActivatedStatus = async (userId: string, activated: boolean) => {
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.updateDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
+  
+  try {
+    await functions.updateDoc(functions.doc(db, "users", userId), {
+      activated: activated
+    });
+  } catch (error) {
+    console.error("Error updating user activated status:", error);
+    throw error;
+  }
+};
+
+// ユーザーのロールを更新（管理者のみ）
+export const updateUserRole = async (userId: string, role: 'guide' | 'guest' | 'admin') => {
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.updateDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
+  
+  try {
+    await functions.updateDoc(functions.doc(db, "users", userId), {
+      role: role
+    });
+  } catch (error) {
+    console.error("Error updating user role:", error);
+    throw error;
+  }
+};
+
+// ユーザー統計情報を取得（管理者のみ）
+export const getUserStats = async () => {
+  if (isServer) return null;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return null;
+  }
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.getDocs || !functions.collection) {
+    console.error("Firestore functions not loaded");
+    return null;
+  }
+  
+  try {
+    const querySnapshot = await functions.getDocs(functions.collection(db, "users"));
+    const users = querySnapshot.docs.map((doc: any) => doc.data() as UserBasicInfo);
+    
+    const stats = {
+      totalUsers: users.length,
+      activeUsers: users.filter(user => user.activated).length,
+      totalGuides: users.filter(user => user.role === 'guide').length,
+      totalGuests: users.filter(user => user.role === 'guest').length,
+      totalAdmins: users.filter(user => user.role === 'admin').length,
+      verifiedUsers: users.filter(user => user.activated).length,
+      unverifiedUsers: users.filter(user => !user.activated).length,
+      completedProfiles: users.filter(user => user.profileCompleted).length,
+      incompleteProfiles: users.filter(user => !user.profileCompleted).length,
+    };
+    
+    return stats;
+  } catch (error) {
+    console.error("Error getting user stats:", error);
+    return null;
   }
 };

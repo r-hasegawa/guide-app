@@ -22,9 +22,8 @@ export default function ActivationPendingPage() {
   const RESEND_COOLDOWN = 60000; // 60秒
 
   useEffect(() => {
-    // SessionWrapperで基本的なリダイレクトは処理されるため、
-    // ここでは認証完了後の成功時リダイレクトのみ
-    if (!loading && user && userInfo && userInfo.profileCompleted && userInfo.activated) {
+    // メール認証完了後の成功時リダイレクト
+    if (!loading && user && userInfo && userInfo.profileCompleted && user.emailVerified) {
       router.replace('/mypage');
     }
   }, [user, userInfo, loading, router]);

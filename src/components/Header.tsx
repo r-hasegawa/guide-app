@@ -83,7 +83,8 @@ export default function Header() {
     const role = userInfo.role === 'guide' ? t.roles.guide : t.roles.guest;
     const roleIcon = userInfo.role === 'guide' ? '🎓' : '✈️';
     
-    if (!userInfo.activated) {
+    // Firebase Authのemail_verifiedを使用
+    if (!user?.emailVerified) {
       const statusText = isJapanese ? `${role}(未認証)` : `${role} (Unverified)`;
       return { 
         icon: '⚠️', 
@@ -136,13 +137,14 @@ export default function Header() {
               )}
 
               {/* アクティベーション状態の表示（一般ユーザーのみ） */}
+              {/* Firebase Authのemail_verifiedを使用 */}
               {userInfo && userInfo.role !== 'admin' && (
                 <div className="flex flex-col items-center mr-4">
                   <span className="text-lg" role="img" aria-label="activation status">
-                    {userInfo.activated ? '✅' : '⚠️'}
+                    {user.emailVerified ? '✅' : '⚠️'}
                   </span>
-                  <span className={`text-xs ${userInfo.activated ? 'text-green-600' : 'text-red-600'}`}>
-                    {userInfo.activated 
+                  <span className={`text-xs ${user.emailVerified ? 'text-green-600' : 'text-red-600'}`}>
+                    {user.emailVerified 
                       ? (isJapanese ? '認証済み' : 'Verified')
                       : (isJapanese ? '未認証' : 'Unverified')
                     }

@@ -78,11 +78,11 @@ export default function SignupPage() {
         createdAt: new Date().toISOString(),
         role: role as 'guide' | 'guest',
         profileCompleted: false,
-        activated: firebaseUser.emailVerified || false, // メール認証状態を確認
-        language: 'ja' as const, // 【新規追加】デフォルト言語を日本語に設定
-        notifications: { // 【新規追加】デフォルト通知設定
-        email: false, // メール通知は初期でON
-        push: false // プッシュ通知も初期でON
+        activated: false, // activatedはデフォルトfalse（使用しない）
+        language: 'ja' as const, // デフォルト言語を日本語に設定
+        notifications: { // デフォルト通知設定
+          email: false, // メール通知は初期でOFF
+          push: false // プッシュ通知も初期でOFF
         }
       };
       
@@ -91,7 +91,7 @@ export default function SignupPage() {
       await saveUserToFirestore(firebaseUser.uid, userProfile);
       console.log('Firestoreへの保存完了');
       
-      // メール認証が必要な場合
+      // メール認証が必要な場合（Firebase AuthのemailVerifiedを使用）
       if (!firebaseUser.emailVerified) {
         router.push('/activation/pending');
       } else {
