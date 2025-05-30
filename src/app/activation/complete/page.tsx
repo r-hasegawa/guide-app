@@ -9,7 +9,7 @@ import { updateActivationStatus } from '@/firebase/firestore';
 
 export default function ActivationCompletePage() {
   const { user, userInfo, loading, refreshUserInfo } = useAuthContext();
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const router = useRouter();
   const [activating, setActivating] = useState(true);
   const [error, setError] = useState('');
@@ -68,10 +68,10 @@ export default function ActivationCompletePage() {
         <div className="text-center">
           <div className="text-6xl mb-4">⏳</div>
           <h1 className="text-2xl font-bold mb-2">
-            {t.isJapanese ? 'アカウントを有効化しています' : 'Activating your account'}
+            {isJapanese ? 'アカウントを有効化しています' : 'Activating your account'}
           </h1>
           <p className="text-gray-600">
-            {t.isJapanese ? 'しばらくお待ちください...' : 'Please wait...'}
+            {isJapanese ? 'しばらくお待ちください...' : 'Please wait...'}
           </p>
         </div>
       </main>
@@ -91,14 +91,14 @@ export default function ActivationCompletePage() {
               onClick={() => router.push('/activation/pending')}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition"
             >
-              {t.isJapanese ? '認証ページに戻る' : 'Back to verification page'}
+              {isJapanese ? '認証ページに戻る' : 'Back to verification page'}
             </button>
             
             <button
               onClick={() => router.push('/')}
               className="w-full bg-gray-500 text-white py-3 px-4 rounded-lg hover:bg-gray-600 transition"
             >
-              {t.isJapanese ? 'トップページに戻る' : 'Back to top page'}
+              {isJapanese ? 'トップページに戻る' : 'Back to top page'}
             </button>
           </div>
         </div>
@@ -112,7 +112,7 @@ export default function ActivationCompletePage() {
         <div className="text-6xl mb-4">✅</div>
         <h1 className="text-2xl font-bold mb-2">{t.auth.activationComplete}</h1>
         <p className="text-gray-600">
-          {t.isJapanese 
+          {isJapanese 
             ? 'アカウントが有効化されました。リダイレクト中...'
             : 'Your account has been activated. Redirecting...'
           }

@@ -15,7 +15,7 @@ import {
 
 export default function OnboardingPage() {
   const { user, userInfo, loading, refreshUserInfo } = useAuthContext();
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const router = useRouter();
   
   const [step, setStep] = useState<'role' | 'profile'>('role');
@@ -117,24 +117,24 @@ export default function OnboardingPage() {
   const validateProfile = () => {
     if (selectedRole === 'guide') {
       if (!guideProfile.name.trim()) {
-        setError(t.isJapanese ? "名前を入力してください。" : "Please enter your name.");
+        setError(isJapanese ? "名前を入力してください。" : "Please enter your name.");
         return false;
       }
       if (guideProfile.languages.length === 0) {
-        setError(t.isJapanese ? "話せる言語を少なくとも1つ選択してください。" : "Please select at least one language you can speak.");
+        setError(isJapanese ? "話せる言語を少なくとも1つ選択してください。" : "Please select at least one language you can speak.");
         return false;
       }
       if (guideProfile.areas.length === 0) {
-        setError(t.isJapanese ? "対応エリアを少なくとも1つ選択してください。" : "Please select at least one area you can guide.");
+        setError(isJapanese ? "対応エリアを少なくとも1つ選択してください。" : "Please select at least one area you can guide.");
         return false;
       }
     } else { // selectedRole === 'guest'
       if (!guestProfile.name.trim()) {
-        setError(t.isJapanese ? "名前を入力してください。" : "Please enter your name.");
+        setError(isJapanese ? "名前を入力してください。" : "Please enter your name.");
         return false;
       }
       if (guestProfile.languages.length === 0) {
-        setError(t.isJapanese ? "話せる言語を少なくとも1つ選択してください。" : "Please select at least one language you can speak.");
+        setError(isJapanese ? "話せる言語を少なくとも1つ選択してください。" : "Please select at least one language you can speak.");
         return false;
       }
     }
@@ -165,7 +165,7 @@ export default function OnboardingPage() {
       router.push("/mypage");
     } catch (err) {
       console.error("プロフィール保存エラー:", err);
-      setError(t.isJapanese ? "プロフィールの保存に失敗しました。もう一度お試しください。" : "Failed to save profile. Please try again.");
+      setError(isJapanese ? "プロフィールの保存に失敗しました。もう一度お試しください。" : "Failed to save profile. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -188,12 +188,12 @@ export default function OnboardingPage() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <p>{t.isJapanese ? "既にプロフィールが設定済みです。" : "Your profile has already been set up."}</p>
+          <p>{isJapanese ? "既にプロフィールが設定済みです。" : "Your profile has already been set up."}</p>
           <button 
             onClick={() => router.push("/mypage")}
             className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
           >
-            {t.isJapanese ? "マイページへ" : "Go to My Page"}
+            {isJapanese ? "マイページへ" : "Go to My Page"}
           </button>
         </div>
       </div>
@@ -208,7 +208,7 @@ export default function OnboardingPage() {
             <h1 className="text-2xl font-bold mb-2">{t.profile.welcome}</h1>
             <p className="text-gray-600">
               {user.displayName || user.email}
-              {t.isJapanese ? 'さん、' : ', '}
+              {isJapanese ? 'さん、' : ', '}
               <br />
               {t.profile.chooseRole}
             </p>
@@ -220,7 +220,7 @@ export default function OnboardingPage() {
               className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg hover:bg-blue-700 transition"
             >
               <div className="text-left">
-                <div className="font-bold text-lg">🎓 {t.isJapanese ? 'ガイドとして登録' : 'Register as Guide'}</div>
+                <div className="font-bold text-lg">🎓 {isJapanese ? 'ガイドとして登録' : 'Register as Guide'}</div>
                 <div className="text-sm opacity-90 mt-1">
                   {t.roles.guideDescription}
                 </div>
@@ -232,7 +232,7 @@ export default function OnboardingPage() {
               className="w-full bg-green-600 text-white py-4 px-6 rounded-lg hover:bg-green-700 transition"
             >
               <div className="text-left">
-                <div className="font-bold text-lg">✈️ {t.isJapanese ? '観光客として登録' : 'Register as Tourist'}</div>
+                <div className="font-bold text-lg">✈️ {isJapanese ? '観光客として登録' : 'Register as Tourist'}</div>
                 <div className="text-sm opacity-90 mt-1">
                   {t.roles.guestDescription}
                 </div>
@@ -251,7 +251,7 @@ export default function OnboardingPage() {
     <main className="max-w-2xl mx-auto p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-2">
-          {isGuide ? t.profile.guideProfile : t.profile.guestProfile}{t.isJapanese ? '設定' : ' Setup'}
+          {isGuide ? t.profile.guideProfile : t.profile.guestProfile}{isJapanese ? '設定' : ' Setup'}
         </h1>
         <p className="text-gray-600">
           {t.profile.setupProfile}
@@ -272,7 +272,7 @@ export default function OnboardingPage() {
               : handleGuestInputChange('name', e.target.value)
             }
             className="w-full border rounded px-3 py-2"
-            placeholder={t.isJapanese ? "山田 太郎" : "John Doe"}
+            placeholder={isJapanese ? "山田 太郎" : "John Doe"}
           />
         </div>
 
@@ -324,7 +324,7 @@ export default function OnboardingPage() {
                 onChange={(e) => handleGuideInputChange('introduction', e.target.value)}
                 rows={4}
                 className="w-full border rounded px-3 py-2"
-                placeholder={t.isJapanese ? "あなたのガイド経験や特徴を教えてください" : "Please tell us about your guiding experience and characteristics"}
+                placeholder={isJapanese ? "あなたのガイド経験や特徴を教えてください" : "Please tell us about your guiding experience and characteristics"}
               />
             </div>
           </>
@@ -358,7 +358,7 @@ export default function OnboardingPage() {
                 onChange={(e) => handleGuestInputChange('introduction', e.target.value)}
                 rows={4}
                 className="w-full border rounded px-3 py-2"
-                placeholder={t.isJapanese ? "あなたの興味や日本での過ごし方について教えてください" : "Please tell us about your interests and how you'd like to spend time in Japan"}
+                placeholder={isJapanese ? "あなたの興味や日本での過ごし方について教えてください" : "Please tell us about your interests and how you'd like to spend time in Japan"}
               />
             </div>
           </>
@@ -376,7 +376,7 @@ export default function OnboardingPage() {
             disabled={isSubmitting}
             className="flex-1 bg-blue-600 text-white py-2 px-6 rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            {isSubmitting ? t.common.processing : (t.isJapanese ? 'プロフィールを保存' : 'Save Profile')}
+            {isSubmitting ? t.common.processing : (isJapanese ? 'プロフィールを保存' : 'Save Profile')}
           </button>
         </div>
       </div>

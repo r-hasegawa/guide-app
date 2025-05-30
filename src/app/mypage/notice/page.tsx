@@ -68,7 +68,7 @@ const dummyNotices: Notice[] = [
 
 export default function NoticePage() {
   const { user, loading } = useAuthContext();
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const router = useRouter();
   const [notices, setNotices] = useState<Notice[]>([]);
 
@@ -95,7 +95,7 @@ export default function NoticePage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(t.isJapanese ? 'ja-JP' : 'en-US', {
+    return date.toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -134,7 +134,7 @@ export default function NoticePage() {
           >
             <div className="flex items-start justify-between mb-3">
               <h3 className={`text-lg font-medium ${!notice.isRead ? 'text-blue-900' : 'text-gray-900'}`}>
-                {t.isJapanese ? notice.title : notice.titleEn}
+                {isJapanese ? notice.title : notice.titleEn}
               </h3>
               {!notice.isRead && (
                 <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full ml-2 flex-shrink-0">
@@ -145,7 +145,7 @@ export default function NoticePage() {
             <p className="text-sm text-gray-600 mb-4">{formatDate(notice.date)}</p>
             <div className="prose max-w-none">
               <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                {t.isJapanese ? notice.content : notice.contentEn}
+                {isJapanese ? notice.content : notice.contentEn}
               </p>
             </div>
             {!notice.isRead && (

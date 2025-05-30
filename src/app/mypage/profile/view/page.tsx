@@ -9,7 +9,7 @@ import { getGuideProfile, getGuestProfile, GuideProfile, GuestProfile } from "@/
 
 export default function ProfileViewPage() {
   const { user, userInfo, loading } = useAuthContext();
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const router = useRouter();
 
   const [guideProfile, setGuideProfile] = useState<GuideProfile | null>(null);
@@ -88,7 +88,7 @@ export default function ProfileViewPage() {
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">
-            {t.isJapanese ? 'プロフィール詳細' : 'Profile Details'}
+            {isJapanese ? 'プロフィール詳細' : 'Profile Details'}
           </h2>
           <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
             {isGuide ? t.roles.guide : t.roles.guest}
@@ -161,7 +161,7 @@ export default function ProfileViewPage() {
             onClick={() => router.push("/mypage/profile/edit")}
             className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
           >
-            {t.isJapanese ? 'プロフィールを編集' : 'Edit Profile'}
+            {isJapanese ? 'プロフィールを編集' : 'Edit Profile'}
           </button>
         </div>
       </div>

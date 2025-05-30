@@ -23,7 +23,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
   const { id } = use(params);
   const router = useRouter();
   const [user, loading, error] = useAuthState(auth);
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const [post, setPost] = useState<GuestPost | null>(null);
   const [guideName, setGuideName] = useState<string>("");
   const [pageLoading, setPageLoading] = useState(true);
@@ -89,7 +89,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(t.isJapanese ? 'ja-JP' : 'en-US', {
+    return date.toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -102,7 +102,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
   if (!post) {
     return <div className="text-center py-10">
-      {t.isJapanese ? '募集が見つかりません' : 'Job posting not found'}
+      {isJapanese ? '募集が見つかりません' : 'Job posting not found'}
     </div>;
   }
 
@@ -122,7 +122,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           <div>
             <div className="mb-4">
               <h3 className="text-lg font-semibold mb-2">
-                {t.isJapanese ? '投稿者' : 'Posted by'}
+                {isJapanese ? '投稿者' : 'Posted by'}
               </h3>
               <p className="text-gray-700">{post.guestName}</p>
             </div>
@@ -184,7 +184,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
 
             <div className="mb-4">
               <h3 className="text-lg font-semibold mb-2">
-                {t.isJapanese ? '投稿日' : 'Posted on'}
+                {isJapanese ? '投稿日' : 'Posted on'}
               </h3>
               <p className="text-gray-700">{formatDate(post.createdAt)}</p>
             </div>
@@ -227,7 +227,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
                     id="message"
                     value={applicationMessage}
                     onChange={(e) => setApplicationMessage(e.target.value)}
-                    placeholder={t.isJapanese
+                    placeholder={isJapanese
                       ? "自己紹介や対応可能な内容、料金などを記載してください"
                       : "Please describe your self-introduction, what you can offer, rates, etc."
                     }
@@ -253,7 +253,7 @@ export default function PostDetailPage({ params }: PostDetailPageProps) {
           <div className="mt-8 border-t pt-6">
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <p className="text-gray-700">
-                {t.isJapanese
+                {isJapanese
                   ? 'この募集に応募するには、ガイドとしてログインしてください。'
                   : 'To apply to this job, please log in as a guide.'
                 }

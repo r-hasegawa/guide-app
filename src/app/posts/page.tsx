@@ -17,7 +17,7 @@ import {
 export default function PostsPage() {
   const router = useRouter();
   const [user, loading] = useAuthState(auth);
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const [userRole, setUserRole] = useState<'guide' | 'guest' | null>(null);
   const [posts, setPosts] = useState<GuestPost[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
@@ -64,7 +64,7 @@ export default function PostsPage() {
   }, [user, loading]);
 
   const handleDeletePost = async (postId: string) => {
-    const confirmMessage = t.isJapanese ? 'この募集を削除しますか？' : 'Are you sure you want to delete this job?';
+    const confirmMessage = isJapanese ? 'この募集を削除しますか？' : 'Are you sure you want to delete this job?';
     if (!confirm(confirmMessage)) {
       return;
     }
@@ -92,7 +92,7 @@ export default function PostsPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(t.isJapanese ? 'ja-JP' : 'en-US', {
+    return date.toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -109,7 +109,7 @@ export default function PostsPage() {
         return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">{t.common.closed}</span>;
       default:
         return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
-          {t.isJapanese ? '不明' : 'Unknown'}
+          {isJapanese ? '不明' : 'Unknown'}
         </span>;
     }
   };
@@ -123,7 +123,7 @@ export default function PostsPage() {
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">📝 {t.posts.postList}</h1>
         <p className="text-gray-600">
-          {t.isJapanese ? 'ログインしてください。' : 'Please log in.'}
+          {isJapanese ? 'ログインしてください。' : 'Please log in.'}
         </p>
       </div>
     );
@@ -151,7 +151,7 @@ export default function PostsPage() {
         <div className="text-center py-10 text-gray-500">
           <p>
             {userRole === 'guide' 
-              ? (t.isJapanese ? '現在募集中のガイド案件はありません' : 'No guide jobs currently available')
+              ? (isJapanese ? '現在募集中のガイド案件はありません' : 'No guide jobs currently available')
               : t.posts.noPosts
             }
           </p>
@@ -178,7 +178,7 @@ export default function PostsPage() {
 
               {userRole === 'guide' && (
                 <p className="text-sm text-gray-600 mb-2">
-                  {t.isJapanese ? '投稿者:' : 'Posted by:'} {post.guestName}
+                  {isJapanese ? '投稿者:' : 'Posted by:'} {post.guestName}
                 </p>
               )}
 
@@ -249,7 +249,7 @@ export default function PostsPage() {
                   onClick={() => handleViewPost(post.id)}
                   className="flex-1 bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600 transition"
                 >
-                  {t.isJapanese ? '詳細を見る' : 'View Details'}
+                  {isJapanese ? '詳細を見る' : 'View Details'}
                 </button>
                 
                 {userRole === 'guest' && (

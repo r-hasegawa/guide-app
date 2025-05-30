@@ -22,7 +22,7 @@ import {
 
 export default function RequestPage() {
   const [user, loading] = useAuthState(auth);
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   
   // マッチングリクエスト（観光客→ガイド）
   const [sentMatchingRequests, setSentMatchingRequests] = useState<MatchingRequest[]>([]);
@@ -112,7 +112,7 @@ export default function RequestPage() {
 
   // マッチングリクエストの取り消し
   const handleCancelMatchingRequest = async (requestId: string) => {
-    const confirmMessage = t.isJapanese ? 'リクエストを取り消しますか？' : 'Are you sure you want to cancel this request?';
+    const confirmMessage = isJapanese ? 'リクエストを取り消しますか？' : 'Are you sure you want to cancel this request?';
     if (!confirm(confirmMessage)) {
       return;
     }
@@ -153,7 +153,7 @@ export default function RequestPage() {
 
   // ガイド応募の取り消し
   const handleCancelApplication = async (applicationId: string) => {
-    const confirmMessage = t.isJapanese ? '応募を取り消しますか？' : 'Are you sure you want to cancel this application?';
+    const confirmMessage = isJapanese ? '応募を取り消しますか？' : 'Are you sure you want to cancel this application?';
     if (!confirm(confirmMessage)) {
       return;
     }
@@ -181,14 +181,14 @@ export default function RequestPage() {
         return <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">{t.common.rejected}</span>;
       default:
         return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
-          {t.isJapanese ? '不明' : 'Unknown'}
+          {isJapanese ? '不明' : 'Unknown'}
         </span>;
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(t.isJapanese ? 'ja-JP' : 'en-US', {
+    return date.toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -215,7 +215,7 @@ export default function RequestPage() {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">📩 {t.requests.requestManagement}</h1>
-        <p>{t.isJapanese ? 'ログインしてください。' : 'Please log in.'}</p>
+        <p>{isJapanese ? 'ログインしてください。' : 'Please log in.'}</p>
       </div>
     );
   }
@@ -273,7 +273,7 @@ export default function RequestPage() {
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h4 className="text-lg font-semibold">
-                              {t.isJapanese ? `${request.guideName}さんへのリクエスト` : `Request to ${request.guideName}`}
+                              {isJapanese ? `${request.guideName}さんへのリクエスト` : `Request to ${request.guideName}`}
                             </h4>
                             <p className="text-sm text-gray-500">{formatDate(request.createdAt)}</p>
                           </div>
@@ -299,7 +299,7 @@ export default function RequestPage() {
 
                         {request.status !== 'pending' && (
                           <div className="text-sm text-gray-600">
-                            {formatDate(request.updatedAt)} {t.isJapanese ? 'に' : ''}{request.status === 'accepted' ? t.common.approved : t.common.rejected}{t.isJapanese ? 'されました' : ''}
+                            {formatDate(request.updatedAt)} {isJapanese ? 'に' : ''}{request.status === 'accepted' ? t.common.approved : t.common.rejected}{isJapanese ? 'されました' : ''}
                           </div>
                         )}
                       </div>
@@ -318,7 +318,7 @@ export default function RequestPage() {
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h4 className="text-lg font-semibold">
-                              {t.isJapanese ? `${application.guestName}さんの募集への応募` : `Application to ${application.guestName}'s job`}
+                              {isJapanese ? `${application.guestName}さんの募集への応募` : `Application to ${application.guestName}'s job`}
                             </h4>
                             <p className="text-sm text-gray-500">{formatDate(application.createdAt)}</p>
                           </div>
@@ -344,7 +344,7 @@ export default function RequestPage() {
 
                         {application.status !== 'pending' && (
                           <div className="text-sm text-gray-600">
-                            {formatDate(application.updatedAt)} {t.isJapanese ? 'に' : ''}{application.status === 'accepted' ? t.common.approved : t.common.rejected}{t.isJapanese ? 'されました' : ''}
+                            {formatDate(application.updatedAt)} {isJapanese ? 'に' : ''}{application.status === 'accepted' ? t.common.approved : t.common.rejected}{isJapanese ? 'されました' : ''}
                           </div>
                         )}
                       </div>
@@ -378,7 +378,7 @@ export default function RequestPage() {
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h4 className="text-lg font-semibold">
-                              {t.isJapanese ? `${request.guestName}さんからのリクエスト` : `Request from ${request.guestName}`}
+                              {isJapanese ? `${request.guestName}さんからのリクエスト` : `Request from ${request.guestName}`}
                             </h4>
                             <p className="text-sm text-gray-500">{formatDate(request.createdAt)}</p>
                           </div>
@@ -413,7 +413,7 @@ export default function RequestPage() {
 
                         {request.status !== 'pending' && (
                           <div className="text-sm text-gray-600">
-                            {formatDate(request.updatedAt)} {t.isJapanese ? 'に' : ''}{request.status === 'accepted' ? t.common.approved : t.common.rejected}{t.isJapanese ? 'しました' : ''}
+                            {formatDate(request.updatedAt)} {isJapanese ? 'に' : ''}{request.status === 'accepted' ? t.common.approved : t.common.rejected}{isJapanese ? 'しました' : ''}
                           </div>
                         )}
                       </div>
@@ -432,7 +432,7 @@ export default function RequestPage() {
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h4 className="text-lg font-semibold">
-                              {t.isJapanese ? `${application.guideName}さんからの応募` : `Application from ${application.guideName}`}
+                              {isJapanese ? `${application.guideName}さんからの応募` : `Application from ${application.guideName}`}
                             </h4>
                             <p className="text-sm text-gray-500">{formatDate(application.createdAt)}</p>
                           </div>
@@ -467,7 +467,7 @@ export default function RequestPage() {
 
                         {application.status !== 'pending' && (
                           <div className="text-sm text-gray-600">
-                            {formatDate(application.updatedAt)} {t.isJapanese ? 'に' : ''}{application.status === 'accepted' ? t.common.approved : t.common.rejected}{t.isJapanese ? 'しました' : ''}
+                            {formatDate(application.updatedAt)} {isJapanese ? 'に' : ''}{application.status === 'accepted' ? t.common.approved : t.common.rejected}{isJapanese ? 'しました' : ''}
                           </div>
                         )}
                       </div>

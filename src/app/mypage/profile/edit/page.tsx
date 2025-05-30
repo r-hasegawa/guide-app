@@ -17,7 +17,7 @@ import {
 
 export default function ProfileEditPage() {
   const { user, userInfo, loading, refreshUserInfo } = useAuthContext();
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,28 +111,28 @@ export default function ProfileEditPage() {
     setError(""); // Clear previous errors
     if (userInfo?.role === 'guide') {
       if (!guideProfile.name.trim()) {
-        setError(t.isJapanese ? "名前を入力してください。" : "Please enter your name.");
+        setError(isJapanese ? "名前を入力してください。" : "Please enter your name.");
         return false;
       }
       if (guideProfile.languages.length === 0) {
-        setError(t.isJapanese ? "話せる言語を少なくとも1つ選択してください。" : "Please select at least one language you can speak.");
+        setError(isJapanese ? "話せる言語を少なくとも1つ選択してください。" : "Please select at least one language you can speak.");
         return false;
       }
       if (guideProfile.areas.length === 0) {
-        setError(t.isJapanese ? "対応エリアを少なくとも1つ選択してください。" : "Please select at least one area you can guide.");
+        setError(isJapanese ? "対応エリアを少なくとも1つ選択してください。" : "Please select at least one area you can guide.");
         return false;
       }
       if (!guideProfile.introduction?.trim()) {
-        setError(t.isJapanese ? "自己紹介を入力してください。" : "Please enter your self-introduction.");
+        setError(isJapanese ? "自己紹介を入力してください。" : "Please enter your self-introduction.");
         return false;
       }
     } else { // userInfo.role === 'guest'
       if (!guestProfile.name.trim()) {
-        setError(t.isJapanese ? "名前を入力してください。" : "Please enter your name.");
+        setError(isJapanese ? "名前を入力してください。" : "Please enter your name.");
         return false;
       }
       if (guestProfile.languages.length === 0) {
-        setError(t.isJapanese ? "話せる言語を少なくとも1つ選択してください。" : "Please select at least one language you can speak.");
+        setError(isJapanese ? "話せる言語を少なくとも1つ選択してください。" : "Please select at least one language you can speak.");
         return false;
       }
     }
@@ -195,7 +195,7 @@ export default function ProfileEditPage() {
               : handleGuestInputChange('name', e.target.value)
             }
             className="w-full border rounded px-3 py-2"
-            placeholder={t.isJapanese ? "山田 太郎" : "John Doe"}
+            placeholder={isJapanese ? "山田 太郎" : "John Doe"}
           />
         </div>
 
@@ -247,7 +247,7 @@ export default function ProfileEditPage() {
                 onChange={(e) => handleGuideInputChange('introduction', e.target.value)}
                 rows={4}
                 className="w-full border rounded px-3 py-2"
-                placeholder={t.isJapanese ? "あなたのガイド経験や特徴を教えてください" : "Please tell us about your guiding experience and characteristics"}
+                placeholder={isJapanese ? "あなたのガイド経験や特徴を教えてください" : "Please tell us about your guiding experience and characteristics"}
               />
             </div>
           </>
@@ -281,7 +281,7 @@ export default function ProfileEditPage() {
                 onChange={(e) => handleGuestInputChange('introduction', e.target.value)}
                 rows={4}
                 className="w-full border rounded px-3 py-2"
-                placeholder={t.isJapanese ? "あなたの興味や日本での過ごし方について教えてください" : "Please tell us about your interests and how you'd like to spend time in Japan"}
+                placeholder={isJapanese ? "あなたの興味や日本での過ごし方について教えてください" : "Please tell us about your interests and how you'd like to spend time in Japan"}
               />
             </div>
           </>

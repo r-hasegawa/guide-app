@@ -9,7 +9,7 @@ import { getGuideProfile, getGuestProfile } from "@/firebase/firestore";
 
 export default function ProfileRouter() {
   const { user, userInfo, loading } = useAuthContext();
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const router = useRouter();
   const [checkingProfile, setCheckingProfile] = useState(true);
 

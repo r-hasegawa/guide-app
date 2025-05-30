@@ -20,7 +20,7 @@ interface GuideWithId extends GuideProfile {
 export default function GuidesPage() {
   const router = useRouter();
   const [user, loading] = useAuthState(auth);
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const [guides, setGuides] = useState<GuideWithId[]>([]);
   const [filteredGuides, setFilteredGuides] = useState<GuideWithId[]>([]);
   const [pageLoading, setPageLoading] = useState(true);

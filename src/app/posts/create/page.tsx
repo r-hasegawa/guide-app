@@ -16,7 +16,7 @@ import {
 export default function CreatePostPage() {
   const router = useRouter();
   const [user, loading] = useAuthState(auth);
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const [guestName, setGuestName] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -98,7 +98,7 @@ export default function CreatePostPage() {
     }
 
     if (!formData.title.trim() || !formData.description.trim()) {
-      alert(t.isJapanese 
+      alert(isJapanese 
         ? "タイトルと詳細は必須項目です。"
         : "Title and description are required fields."
       );
@@ -159,7 +159,7 @@ export default function CreatePostPage() {
             name="title"
             value={formData.title}
             onChange={handleInputChange}
-            placeholder={t.isJapanese 
+            placeholder={isJapanese 
               ? "例: 東京観光のガイドを探しています"
               : "e.g., Looking for a guide for Tokyo sightseeing"
             }
@@ -178,7 +178,7 @@ export default function CreatePostPage() {
             name="description"
             value={formData.description}
             onChange={handleInputChange}
-            placeholder={t.isJapanese
+            placeholder={isJapanese
               ? "どのようなガイドを希望するか、詳しく説明してください"
               : "Please describe in detail what kind of guide you are looking for"
             }
@@ -245,7 +245,7 @@ export default function CreatePostPage() {
             name="date"
             value={formData.date}
             onChange={handleInputChange}
-            placeholder={t.isJapanese
+            placeholder={isJapanese
               ? "例: 2024年3月15日 10:00-17:00"
               : "e.g., March 15, 2024 10:00-17:00"
             }
@@ -264,7 +264,7 @@ export default function CreatePostPage() {
             name="duration"
             value={formData.duration}
             onChange={handleInputChange}
-            placeholder={t.isJapanese
+            placeholder={isJapanese
               ? "例: 半日（4時間）、1日（8時間）"
               : "e.g., Half day (4 hours), Full day (8 hours)"
             }
@@ -283,7 +283,7 @@ export default function CreatePostPage() {
             name="budget"
             value={formData.budget}
             onChange={handleInputChange}
-            placeholder={t.isJapanese
+            placeholder={isJapanese
               ? "例: 10,000円/日"
               : "e.g., ¥10,000/day"
             }

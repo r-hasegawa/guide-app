@@ -17,7 +17,7 @@ interface Settings {
 
 export default function SettingPage() {
   const { user, userInfo, loading, refreshUserInfo } = useAuthContext();
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const router = useRouter();
   const [settings, setSettings] = useState<Settings>({
     notifications: {
@@ -229,7 +229,7 @@ export default function SettingPage() {
                 <div>
                   <h3 className="font-medium text-gray-800">{t.settings.companyInfo}</h3>
                   <p className="text-sm text-gray-600">
-                    {t.isJapanese ? '運営会社についての情報' : 'Information about the operating company'}
+                    {isJapanese ? '運営会社についての情報' : 'Information about the operating company'}
                   </p>
                 </div>
                 <span className="text-gray-400">→</span>
@@ -244,7 +244,7 @@ export default function SettingPage() {
                 <div>
                   <h3 className="font-medium text-gray-800">{t.settings.termsOfService}</h3>
                   <p className="text-sm text-gray-600">
-                    {t.isJapanese ? 'サービス利用に関する規約' : 'Terms and conditions for service use'}
+                    {isJapanese ? 'サービス利用に関する規約' : 'Terms and conditions for service use'}
                   </p>
                 </div>
                 <span className="text-gray-400">→</span>
@@ -259,7 +259,7 @@ export default function SettingPage() {
                 <div>
                   <h3 className="font-medium text-gray-800">{t.settings.privacyPolicy}</h3>
                   <p className="text-sm text-gray-600">
-                    {t.isJapanese ? '個人情報の取り扱いについて' : 'How we handle personal information'}
+                    {isJapanese ? '個人情報の取り扱いについて' : 'How we handle personal information'}
                   </p>
                 </div>
                 <span className="text-gray-400">→</span>

@@ -23,7 +23,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
   const { id } = use(params);
   const router = useRouter();
   const [user, loading, error] = useAuthState(auth);
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const [guide, setGuide] = useState<GuideProfile | null>(null);
   const [guestName, setGuestName] = useState<string>("");
   const [pageLoading, setPageLoading] = useState(true);
@@ -92,7 +92,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
 
   if (!guide) {
     return <div className="text-center py-10">
-      {t.isJapanese ? 'ガイドが見つかりません' : 'Guide not found'}
+      {isJapanese ? 'ガイドが見つかりません' : 'Guide not found'}
     </div>;
   }
 
@@ -153,7 +153,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
         {user && guestName && (
           <div className="mt-8 border-t pt-6">
             <h3 className="text-lg font-semibold mb-4">
-              {t.isJapanese ? 'マッチングリクエストを送信' : 'Send Matching Request'}
+              {isJapanese ? 'マッチングリクエストを送信' : 'Send Matching Request'}
             </h3>
             
             {requestSent ? (
@@ -180,7 +180,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
                     id="message"
                     value={requestMessage}
                     onChange={(e) => setRequestMessage(e.target.value)}
-                    placeholder={t.isJapanese 
+                    placeholder={isJapanese 
                       ? "ガイドに伝えたいことを書いてください（希望する日時、場所、特別なリクエストなど）"
                       : "Please write what you want to tell the guide (desired date/time, location, special requests, etc.)"
                     }
@@ -206,7 +206,7 @@ export default function GuideDetailPage({ params }: GuideDetailPageProps) {
           <div className="mt-8 border-t pt-6">
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <p className="text-gray-700">
-                {t.isJapanese
+                {isJapanese
                   ? 'このガイドにリクエストを送信するには、観光客としてログインしてください。'
                   : 'To send a request to this guide, please log in as a tourist.'
                 }
