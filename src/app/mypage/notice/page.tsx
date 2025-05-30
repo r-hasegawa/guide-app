@@ -7,70 +7,34 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 // お知らせの型定義
-interface Notice {
+interface Announcement {
   id: string;
   title: string;
-  titleEn: string;
-  date: string;
   content: string;
-  contentEn: string;
-  isRead: boolean;
+  type: 'info' | 'warning' | 'urgent' | 'maintenance';
+  targetAudience: 'all' | 'guides' | 'guests';
+  priority: number;
+  isUrgent: boolean;
+  createdAt: any;
+  expiresAt?: any;
+  viewCount: number;
 }
 
-// ダミーデータ（実際のアプリでは Firebase から取得）
-const dummyNotices: Notice[] = [
-  {
-    id: '1',
-    title: 'サービスメンテナンスのお知らせ',
-    titleEn: 'Service Maintenance Notice',
-    date: '2025-05-30',
-    content: '5月31日（土）午前2:00〜6:00の間、システムメンテナンスを実施いたします。この時間帯はサービスをご利用いただけませんので、ご了承ください。',
-    contentEn: 'We will conduct system maintenance from 2:00 AM to 6:00 AM on Saturday, May 31st. The service will not be available during this time. Thank you for your understanding.',
-    isRead: false
-  },
-  {
-    id: '2',
-    title: '新機能「チャット機能」がリリースされました',
-    titleEn: 'New "Chat Feature" Released',
-    date: '2025-05-25',
-    content: 'マッチングが成立した相手とリアルタイムでチャットができる機能を追加しました。ぜひご活用ください。',
-    contentEn: 'We have added a feature that allows real-time chat with matched partners. Please make use of this new functionality.',
-    isRead: true
-  },
-  {
-    id: '3',
-    title: 'ガイド料金の設定機能について',
-    titleEn: 'About Guide Fee Setting Feature',
-    date: '2025-05-20',
-    content: 'ガイドの方は、プロフィール編集画面から希望時給を設定できるようになりました。適切な料金設定で、より多くのマッチングを目指しましょう。',
-    contentEn: 'Guides can now set their desired hourly rate from the profile editing screen. Set appropriate rates to aim for more matches.',
-    isRead: true
-  },
-  {
-    id: '4',
-    title: 'サービス利用規約の改定について',
-    titleEn: 'Terms of Service Update',
-    date: '2025-05-15',
-    content: 'サービス利用規約を一部改定いたしました。詳細は設定画面の利用規約からご確認ください。',
-    contentEn: 'We have partially updated our Terms of Service. Please check the Terms of Service in the settings screen for details.',
-    isRead: true
-  },
-  {
-    id: '5',
-    title: 'プライバシーポリシーの更新',
-    titleEn: 'Privacy Policy Update',
-    date: '2025-05-10',
-    content: '個人情報の取り扱いに関するプライバシーポリシーを更新いたしました。ユーザーの皆様により安心してご利用いただけるよう、セキュリティを強化しています。',
-    contentEn: 'We have updated our Privacy Policy regarding personal information handling. We are strengthening security so that users can use our service with greater peace of mind.',
-    isRead: true
-  }
-];
+// 既読状態の型定義
+interface ReadStatus {
+  [announcementId: string]: {
+    isRead: boolean;
+    readAt: any;
+  };
+}
 
 export default function NoticePage() {
-  const { user, loading } = useAuthContext();
+  const { user, userInfo, loading } = useAuthContext();
   const { t, isJapanese } = useTranslation();
   const router = useRouter();
-  const [notices, setNotices] = useState<Notice[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [readStatus, setReadStatus] = useState<ReadStatus>({});
+  const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -78,37 +42,205 @@ export default function NoticePage() {
       return;
     }
 
-    // 実際のアプリでは Firebase からお知らせを取得
-    setNotices(dummyNotices);
-  }, [user, loading, router]);
+    if (user && userInfo) {
+      fetchAnnouncements();
+      fetchReadStatus();
+    }
+  }, [user, userInfo, loading, router]);
 
-  const handleNoticeClick = (notice: Notice) => {
-    // 未読の場合は既読にする
-    if (!notice.isRead) {
-      setNotices(prev => 
-        prev.map(n => 
-          n.id === notice.id ? { ...n, isRead: true } : n
-        )
+  // お知らせ一覧を取得
+  const fetchAnnouncements = async () => {
+    if (!userInfo) return;
+
+    try {
+      const { collection, query, where, orderBy, getDocs } = await import('firebase/firestore');
+      const { getFirestore } = await import('@/firebase/firebaseConfig');
+      
+      const db = await getFirestore();
+      if (!db) return;
+
+      // 自分が対象のお知らせのみ取得
+      const q = query(
+        collection(db, 'announcements'),
+        where('isActive', '==', true),
+        where('targetAudience', 'in', ['all', userInfo.role]),
+        orderBy('priority', 'desc'),
+        orderBy('createdAt', 'desc')
       );
+
+      const snapshot = await getDocs(q);
+      const announcementList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate(),
+        expiresAt: doc.data().expiresAt?.toDate()
+      })) as Announcement[];
+
+      // 期限切れのお知らせを除外
+      const now = new Date();
+      const validAnnouncements = announcementList.filter(announcement => {
+        if (!announcement.expiresAt) return true;
+        return announcement.expiresAt > now;
+      });
+
+      setAnnouncements(validAnnouncements);
+    } catch (error) {
+      console.error('お知らせ取得エラー:', error);
+    } finally {
+      setPageLoading(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  // 既読状態を取得
+  const fetchReadStatus = async () => {
+    if (!user) return;
+
+    try {
+      const { doc, getDoc } = await import('firebase/firestore');
+      const { getFirestore } = await import('@/firebase/firebaseConfig');
+      
+      const db = await getFirestore();
+      if (!db) return;
+
+      const statusDoc = await getDoc(doc(db, 'user_announcement_status', user.uid));
+      if (statusDoc.exists()) {
+        setReadStatus(statusDoc.data() as ReadStatus);
+      }
+    } catch (error) {
+      console.error('既読状態取得エラー:', error);
+    }
+  };
+
+  // 既読にする
+  const markAsRead = async (announcementId: string) => {
+    if (!user) return;
+
+    try {
+      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+      const { getFirestore } = await import('@/firebase/firebaseConfig');
+      
+      const db = await getFirestore();
+      if (!db) return;
+
+      await setDoc(
+        doc(db, 'user_announcement_status', user.uid),
+        {
+          [announcementId]: {
+            isRead: true,
+            readAt: serverTimestamp()
+          }
+        },
+        { merge: true }
+      );
+
+      // ローカル状態を更新
+      setReadStatus(prev => ({
+        ...prev,
+        [announcementId]: {
+          isRead: true,
+          readAt: new Date()
+        }
+      }));
+
+      // 閲覧数を増加（管理者のみ可能なので、クライアントサイドでは実装しない）
+      
+    } catch (error) {
+      console.error('既読状態更新エラー:', error);
+    }
+  };
+
+  // お知らせの種類に応じたアイコンを取得
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'urgent': return '🚨';
+      case 'warning': return '⚠️';
+      case 'maintenance': return '🔧';
+      default: return '📢';
+    }
+  };
+
+  // お知らせの種類に応じた色を取得
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'urgent': return 'bg-red-50 border-red-200';
+      case 'warning': return 'bg-yellow-50 border-yellow-200';
+      case 'maintenance': return 'bg-purple-50 border-purple-200';
+      default: return 'bg-blue-50 border-blue-200';
+    }
+  };
+
+  const getBadgeColor = (type: string) => {
+    switch (type) {
+      case 'urgent': return 'bg-red-100 text-red-800';
+      case 'warning': return 'bg-yellow-100 text-yellow-800';
+      case 'maintenance': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-blue-100 text-blue-800';
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    if (isJapanese) {
+      switch (type) {
+        case 'urgent': return '緊急';
+        case 'warning': return '注意';
+        case 'maintenance': return 'メンテナンス';
+        default: return 'お知らせ';
+      }
+    } else {
+      switch (type) {
+        case 'urgent': return 'Urgent';
+        case 'warning': return 'Warning';
+        case 'maintenance': return 'Maintenance';
+        default: return 'Notice';
+      }
+    }
+  };
+
+  const formatDate = (date: Date) => {
     return date.toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
-  if (loading) {
+  if (loading || pageLoading) {
     return <div className="text-center py-10">{t.common.loading}</div>;
   }
 
   if (!user) {
     return null;
   }
+
+  // 未読のお知らせを優先して表示するためにソート
+  const sortedAnnouncements = [...announcements].sort((a, b) => {
+    const aIsRead = readStatus[a.id]?.isRead || false;
+    const bIsRead = readStatus[b.id]?.isRead || false;
+    
+    // 未読を優先
+    if (aIsRead !== bIsRead) {
+      return aIsRead ? 1 : -1;
+    }
+    
+    // 優先度順
+    if (a.priority !== b.priority) {
+      return b.priority - a.priority;
+    }
+    
+    // 緊急フラグ順
+    if (a.isUrgent !== b.isUrgent) {
+      return a.isUrgent ? -1 : 1;
+    }
+    
+    // 作成日時順
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  const unreadCount = announcements.filter(announcement => 
+    !readStatus[announcement.id]?.isRead
+  ).length;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -119,48 +251,160 @@ export default function NoticePage() {
         >
           ← {t.common.back}
         </button>
-        <h1 className="text-2xl font-bold">🛎️ {t.notice.notice}</h1>
+        <h1 className="text-2xl font-bold flex items-center">
+          🛎️ {t.notice.notice}
+          {unreadCount > 0 && (
+            <span className="ml-3 bg-red-500 text-white text-sm px-2 py-1 rounded-full">
+              {unreadCount}
+            </span>
+          )}
+        </h1>
+      </div>
+
+      {/* 統計情報 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg border text-center">
+          <div className="text-2xl font-bold text-blue-600">{announcements.length}</div>
+          <div className="text-sm text-gray-600">
+            {isJapanese ? '総お知らせ数' : 'Total Notices'}
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg border text-center">
+          <div className="text-2xl font-bold text-red-600">{unreadCount}</div>
+          <div className="text-sm text-gray-600">
+            {isJapanese ? '未読' : 'Unread'}
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg border text-center">
+          <div className="text-2xl font-bold text-orange-600">
+            {announcements.filter(a => a.isUrgent).length}
+          </div>
+          <div className="text-sm text-gray-600">
+            {isJapanese ? '緊急' : 'Urgent'}
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg border text-center">
+          <div className="text-2xl font-bold text-green-600">
+            {announcements.length - unreadCount}
+          </div>
+          <div className="text-sm text-gray-600">
+            {isJapanese ? '既読' : 'Read'}
+          </div>
+        </div>
       </div>
 
       {/* お知らせ一覧 */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold mb-4">{t.notice.noticeList}</h2>
-        {notices.map((notice) => (
-          <div
-            key={notice.id}
-            className={`p-6 border rounded-lg transition ${
-              !notice.isRead ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
-            }`}
-          >
-            <div className="flex items-start justify-between mb-3">
-              <h3 className={`text-lg font-medium ${!notice.isRead ? 'text-blue-900' : 'text-gray-900'}`}>
-                {isJapanese ? notice.title : notice.titleEn}
-              </h3>
-              {!notice.isRead && (
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full ml-2 flex-shrink-0">
-                  {t.notice.unread}
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-gray-600 mb-4">{formatDate(notice.date)}</p>
-            <div className="prose max-w-none">
-              <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                {isJapanese ? notice.content : notice.contentEn}
-              </p>
-            </div>
-            {!notice.isRead && (
-              <div className="mt-4 pt-4 border-t">
-                <button
-                  onClick={() => handleNoticeClick(notice)}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  {t.notice.markAsRead}
-                </button>
-              </div>
-            )}
+        {sortedAnnouncements.length === 0 ? (
+          <div className="text-center py-10 text-gray-500">
+            <div className="text-6xl mb-4">📭</div>
+            <p>{isJapanese ? 'お知らせはありません' : 'No notices available'}</p>
           </div>
-        ))}
+        ) : (
+          sortedAnnouncements.map((announcement) => {
+            const isRead = readStatus[announcement.id]?.isRead || false;
+            
+            return (
+              <div
+                key={announcement.id}
+                className={`p-6 border rounded-lg transition ${
+                  isRead 
+                    ? 'bg-white border-gray-200' 
+                    : `${getTypeColor(announcement.type)} border-2`
+                }`}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">{getTypeIcon(announcement.type)}</span>
+                    <div>
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getBadgeColor(announcement.type)}`}>
+                          {getTypeLabel(announcement.type)}
+                        </span>
+                        {announcement.isUrgent && (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                            {isJapanese ? '緊急' : 'Urgent'}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-500">
+                          {isJapanese ? '優先度' : 'Priority'}: {announcement.priority}/5
+                        </span>
+                      </div>
+                      <h3 className={`text-lg font-medium ${isRead ? 'text-gray-700' : 'text-gray-900'}`}>
+                        {announcement.title}
+                      </h3>
+                    </div>
+                  </div>
+                  
+                  {!isRead && (
+                    <div className="flex items-center space-x-2">
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {t.notice.unread}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="prose max-w-none mb-4">
+                  <p className={`leading-relaxed whitespace-pre-wrap ${isRead ? 'text-gray-600' : 'text-gray-800'}`}>
+                    {announcement.content}
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <div>
+                      {isJapanese ? '投稿日時:' : 'Posted:'} {formatDate(announcement.createdAt)}
+                    </div>
+                    {announcement.expiresAt && (
+                      <div>
+                        {isJapanese ? '有効期限:' : 'Expires:'} {formatDate(announcement.expiresAt)}
+                      </div>
+                    )}
+                  </div>
+
+                  {!isRead && (
+                    <button
+                      onClick={() => markAsRead(announcement.id)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm transition"
+                    >
+                      {t.notice.markAsRead}
+                    </button>
+                  )}
+                </div>
+
+                {isRead && readStatus[announcement.id]?.readAt && (
+                  <div className="mt-3 pt-3 border-t text-xs text-gray-400">
+                    {isJapanese ? '既読日時:' : 'Read on:'} {
+                      readStatus[announcement.id].readAt.toDate 
+                        ? formatDate(readStatus[announcement.id].readAt.toDate())
+                        : formatDate(new Date(readStatus[announcement.id].readAt))
+                    }
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
+
+      {/* 一括既読ボタン */}
+      {unreadCount > 0 && (
+        <div className="mt-6 text-center">
+          <button
+            onClick={async () => {
+              for (const announcement of announcements) {
+                if (!readStatus[announcement.id]?.isRead) {
+                  await markAsRead(announcement.id);
+                }
+              }
+            }}
+            className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition"
+          >
+            {isJapanese ? 'すべて既読にする' : 'Mark all as read'} ({unreadCount})
+          </button>
+        </div>
+      )}
     </div>
   );
 }
