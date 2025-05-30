@@ -1,37 +1,24 @@
 // src/types/admin.ts
 
-// お知らせの型定義
+// シンプルなお知らせの型定義（複雑な機能を削除）
 export interface Announcement {
   id: string;
-  title: string;
-  content: string;
-  type: 'info' | 'warning' | 'urgent' | 'maintenance';
-  targetAudience: 'all' | 'guides' | 'guests';
-  priority: number; // 1-5 (5が最高優先度)
-  isUrgent: boolean;
-  isActive: boolean;
-  createdAt: any; // Firestore Timestamp
-  createdBy: string;
-  createdByEmail: string;
-  updatedAt?: any;
-  updatedBy?: string;
-  expiresAt?: any;
-  viewCount: number;
-  readCount: number;
+  titleJa: string;      // 日本語タイトル
+  titleEn: string;      // 英語タイトル
+  contentJa: string;    // 日本語本文
+  contentEn: string;    // 英語本文
+  createdAt: any;       // 公開日（自動）
 }
 
 // 新規お知らせ作成用の型
 export interface CreateAnnouncementData {
-  title: string;
-  content: string;
-  type: 'info' | 'warning' | 'urgent' | 'maintenance';
-  targetAudience: 'all' | 'guides' | 'guests';
-  priority: number;
-  isUrgent: boolean;
-  expiresAt?: Date;
+  titleJa: string;
+  titleEn: string;
+  contentJa: string;
+  contentEn: string;
 }
 
-// ユーザー統計情報
+// 基本的なユーザー統計情報（簡素化）
 export interface UserStats {
   totalUsers: number;
   activeUsers: number;
@@ -43,7 +30,7 @@ export interface UserStats {
   incompleteProfiles: number;
 }
 
-// お知らせ統計情報
+// 基本的なお知らせ統計情報（簡素化）
 export interface AnnouncementStats {
   totalAnnouncements: number;
   activeAnnouncements: number;
@@ -54,24 +41,4 @@ export interface AnnouncementStats {
     title: string;
     viewCount: number;
   };
-}
-
-// 分析用データ
-export interface AnalyticsData {
-  userStats: UserStats;
-  announcementStats: AnnouncementStats;
-  period: '7d' | '30d' | '90d';
-  lastUpdated: Date;
-}
-
-// 管理者アクション履歴
-export interface AdminAction {
-  id: string;
-  adminId: string;
-  adminEmail: string;
-  action: 'create_announcement' | 'update_announcement' | 'delete_announcement' | 'user_action';
-  targetId?: string;
-  metadata?: Record<string, any>;
-  timestamp: any;
-  ipAddress?: string;
 }

@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { auth } from "@/firebase/firebaseConfig";
@@ -21,6 +22,7 @@ import {
 } from "@/firebase/firestore";
 
 export default function RequestPage() {
+  const router = useRouter();
   const [user, loading] = useAuthState(auth);
   const { t, isJapanese } = useTranslation();
   
@@ -32,7 +34,7 @@ export default function RequestPage() {
   const [sentApplications, setSentApplications] = useState<GuideApplication[]>([]);
   const [receivedApplications, setReceivedApplications] = useState<GuideApplication[]>([]);
   
-  const [userRole, setUserRole] = useState<'guide' | 'guest' | null>(null);
+  const [userRole, setUserRole] = useState<'guide' | 'guest' | 'admin' | null>(null); // admin追加
   const [pageLoading, setPageLoading] = useState(true);
   const [updatingRequest, setUpdatingRequest] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'sent' | 'received'>('received');
@@ -53,6 +55,12 @@ export default function RequestPage() {
         }
         
         setUserRole(userInfo.role);
+
+        // 管理者は投稿機能にアクセスできない
+        if (userInfo.role === 'admin') {
+          router.replace('/admin');
+          return;
+        }
 
         if (userInfo.role === 'guide') {
           // ガイドの場合
@@ -218,6 +226,11 @@ export default function RequestPage() {
         <p>{isJapanese ? 'ログインしてください。' : 'Please log in.'}</p>
       </div>
     );
+  }
+
+  // 管理者の場合は何も表示しない（既にリダイレクト済み）
+  if (userRole === 'admin') {
+    return null;
   }
 
   return (

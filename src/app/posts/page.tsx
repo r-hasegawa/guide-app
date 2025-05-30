@@ -18,7 +18,7 @@ export default function PostsPage() {
   const router = useRouter();
   const [user, loading] = useAuthState(auth);
   const { t, isJapanese } = useTranslation();
-  const [userRole, setUserRole] = useState<'guide' | 'guest' | null>(null);
+  const [userRole, setUserRole] = useState<'guide' | 'guest' | 'admin' | null>(null); // admin追加
   const [posts, setPosts] = useState<GuestPost[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
   const [deletingPost, setDeletingPost] = useState<string | null>(null);
@@ -39,6 +39,12 @@ export default function PostsPage() {
         }
         
         setUserRole(userInfo.role);
+
+        // 管理者は投稿機能にアクセスできない
+        if (userInfo.role === 'admin') {
+          router.replace('/admin');
+          return;
+        }
 
         // 役割に応じて投稿を取得
         if (userInfo.role === 'guide') {
@@ -61,7 +67,7 @@ export default function PostsPage() {
     if (!loading) {
       fetchData();
     }
-  }, [user, loading]);
+  }, [user, loading, router]);
 
   const handleDeletePost = async (postId: string) => {
     const confirmMessage = isJapanese ? 'この募集を削除しますか？' : 'Are you sure you want to delete this job?';
@@ -127,6 +133,11 @@ export default function PostsPage() {
         </p>
       </div>
     );
+  }
+
+  // 管理者の場合は何も表示しない（既にリダイレクト済み）
+  if (userRole === 'admin') {
+    return null;
   }
 
   const pageTitle = userRole === 'guide' ? t.posts.guideRecruitment : t.posts.myPosts;

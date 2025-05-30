@@ -5,16 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useTranslation } from '@/contexts/TranslationContext';
-
-// シンプルなお知らせの型定義
-interface Announcement {
-  id: string;
-  titleJa: string;
-  titleEn: string;
-  contentJa: string;
-  contentEn: string;
-  createdAt: any;
-}
+import { getAnnouncements, Announcement } from '@/firebase/firestore';
 
 export default function NoticePage() {
   const { user, userInfo, loading } = useAuthContext();
@@ -37,26 +28,7 @@ export default function NoticePage() {
   // お知らせ一覧を取得
   const fetchAnnouncements = async () => {
     try {
-      const { getFirestore } = await import('@/firebase/firebaseConfig');
-      const db = await getFirestore();
-      if (!db) return;
-
-      // 動的にFirestore関数をインポート
-      const { collection, query, orderBy, getDocs } = await import('firebase/firestore');
-
-      // 作成日時順でお知らせを取得
-      const q = query(
-        collection(db, 'announcements'),
-        orderBy('createdAt', 'desc')
-      );
-
-      const snapshot = await getDocs(q);
-      const announcementList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      })) as Announcement[];
-
+      const announcementList = await getAnnouncements();
       setAnnouncements(announcementList);
     } catch (error) {
       console.error('お知らせ取得エラー:', error);

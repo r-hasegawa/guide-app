@@ -4,25 +4,13 @@
 import { useState, useEffect } from 'react';
 import AdminGuard from '@/components/AdminGuard';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { getFirestore } from '@/firebase/firebaseConfig';
-
-// シンプルなお知らせの型定義
-interface Announcement {
-  id: string;
-  titleJa: string;
-  titleEn: string;
-  contentJa: string;
-  contentEn: string;
-  createdAt: any;
-}
-
-// 新規お知らせ作成用の型
-interface CreateAnnouncementData {
-  titleJa: string;
-  titleEn: string;
-  contentJa: string;
-  contentEn: string;
-}
+import { 
+  getAnnouncements, 
+  createAnnouncement, 
+  deleteAnnouncement,
+  Announcement,
+  CreateAnnouncementData 
+} from '@/firebase/firestore';
 
 export default function AdminDashboard() {
   const { user } = useAuthContext();
@@ -45,24 +33,7 @@ export default function AdminDashboard() {
   const fetchAnnouncements = async () => {
     setAnnouncementsLoading(true);
     try {
-      const db = await getFirestore();
-      if (!db) return;
-
-      // 動的にFirestore関数をインポート
-      const { collection, query, orderBy, getDocs } = await import('firebase/firestore');
-
-      const q = query(
-        collection(db, 'announcements'),
-        orderBy('createdAt', 'desc')
-      );
-
-      const snapshot = await getDocs(q);
-      const result = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate()
-      })) as Announcement[];
-
+      const result = await getAnnouncements();
       setAnnouncements(result);
     } catch (error) {
       console.error('お知らせ取得エラー:', error);
@@ -89,18 +60,11 @@ export default function AdminDashboard() {
 
     setCreating(true);
     try {
-      const db = await getFirestore();
-      if (!db) throw new Error('Firestore not initialized');
-
-      // 動的にFirestore関数をインポート
-      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
-
-      await addDoc(collection(db, 'announcements'), {
+      await createAnnouncement({
         titleJa: newAnnouncement.titleJa.trim(),
         titleEn: newAnnouncement.titleEn.trim(),
         contentJa: newAnnouncement.contentJa.trim(),
-        contentEn: newAnnouncement.contentEn.trim(),
-        createdAt: serverTimestamp()
+        contentEn: newAnnouncement.contentEn.trim()
       });
       
       // フォームリセット
@@ -129,13 +93,7 @@ export default function AdminDashboard() {
     if (!confirm('このお知らせを削除しますか？')) return;
 
     try {
-      const db = await getFirestore();
-      if (!db) throw new Error('Firestore not initialized');
-
-      // 動的にFirestore関数をインポート
-      const { doc, deleteDoc } = await import('firebase/firestore');
-
-      await deleteDoc(doc(db, 'announcements', announcementId));
+      await deleteAnnouncement(announcementId);
       alert('お知らせを削除しました');
       await fetchAnnouncements();
     } catch (error) {

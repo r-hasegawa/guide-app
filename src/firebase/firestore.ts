@@ -1,3 +1,4 @@
+// src/firebase/firestore.ts
 import { getFirestore } from "./firebaseConfig";
 
 // サーバーサイドでは何もしない
@@ -24,7 +25,9 @@ const loadFirestoreFunctions = async () => {
       where: firestoreModule.where,
       orderBy: firestoreModule.orderBy,
       getDocs: firestoreModule.getDocs,
-      deleteDoc: firestoreModule.deleteDoc
+      deleteDoc: firestoreModule.deleteDoc,
+      addDoc: firestoreModule.addDoc,
+      serverTimestamp: firestoreModule.serverTimestamp
     };
   } catch (error) {
     console.error("Failed to load Firestore functions:", error);
@@ -33,9 +36,11 @@ const loadFirestoreFunctions = async () => {
   return firestoreFunctions;
 };
 
+// ========== 型定義 ==========
+
 // ユーザーの基本情報（ロール情報含む）
 export interface UserBasicInfo {
-  role: 'guide' | 'guest'; 
+  role: 'guide' | 'guest' | 'admin';
   email: string;
   createdAt: string;
   profileCompleted: boolean;
@@ -45,6 +50,24 @@ export interface UserBasicInfo {
     email: boolean;
     push: boolean;
   };
+}
+
+// シンプルなお知らせの型定義
+export interface Announcement {
+  id: string;
+  titleJa: string;      // 日本語タイトル
+  titleEn: string;      // 英語タイトル
+  contentJa: string;    // 日本語本文
+  contentEn: string;    // 英語本文
+  createdAt: any;       // 公開日（自動）
+}
+
+// 新規お知らせ作成用の型
+export interface CreateAnnouncementData {
+  titleJa: string;
+  titleEn: string;
+  contentJa: string;
+  contentEn: string;
 }
 
 // ガイド用プロフィール
@@ -156,6 +179,145 @@ export const getUserBasicInfo = async (uid: string): Promise<UserBasicInfo | nul
   } catch (error) {
     console.error("Error getting user basic info:", error);
     return null;
+  }
+};
+
+export const updateUserSettings = async (uid: string, settings: { language: 'ja' | 'en'; notifications: { email: boolean; push: boolean } }) => {
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.updateDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
+  
+  try {
+    await functions.updateDoc(functions.doc(db, "users", uid), {
+      language: settings.language,
+      notifications: settings.notifications
+    });
+  } catch (error) {
+    console.error("Error updating user settings:", error);
+    throw error;
+  }
+};
+
+export const updateActivationStatus = async (uid: string, activated: boolean) => {
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.updateDoc || !functions.doc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
+  
+  try {
+    await functions.updateDoc(functions.doc(db, "users", uid), {
+      activated: activated
+    });
+  } catch (error) {
+    console.error("Error updating activation status:", error);
+    throw error;
+  }
+};
+
+// ========== お知らせ関連 ==========
+
+export const createAnnouncement = async (data: CreateAnnouncementData) => {
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.addDoc || !functions.collection || !functions.serverTimestamp) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
+  
+  try {
+    const docRef = await functions.addDoc(functions.collection(db, 'announcements'), {
+      titleJa: data.titleJa,
+      titleEn: data.titleEn,
+      contentJa: data.contentJa,
+      contentEn: data.contentEn,
+      createdAt: functions.serverTimestamp()
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating announcement:", error);
+    throw error;
+  }
+};
+
+export const getAnnouncements = async (): Promise<Announcement[]> => {
+  if (isServer) return [];
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return [];
+  }
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.collection || !functions.query || !functions.orderBy || !functions.getDocs) {
+    console.error("Firestore functions not loaded");
+    return [];
+  }
+  
+  try {
+    const q = functions.query(
+      functions.collection(db, 'announcements'),
+      functions.orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await functions.getDocs(q);
+    return snapshot.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate()
+    })) as Announcement[];
+  } catch (error) {
+    console.error("Error getting announcements:", error);
+    return [];
+  }
+};
+
+export const deleteAnnouncement = async (announcementId: string) => {
+  if (isServer) return;
+  
+  const db = await getFirestore();
+  if (!db) {
+    console.error("Firestore not initialized");
+    return;
+  }
+  
+  const functions = await loadFirestoreFunctions();
+  if (!functions.doc || !functions.deleteDoc) {
+    console.error("Firestore functions not loaded");
+    return;
+  }
+  
+  try {
+    await functions.deleteDoc(functions.doc(db, 'announcements', announcementId));
+  } catch (error) {
+    console.error("Error deleting announcement:", error);
+    throw error;
   }
 };
 
@@ -649,33 +811,6 @@ export const deleteGuestPost = async (postId: string) => {
   }
 };
 
-export const updateGuestPostStatus = async (postId: string, status: 'active' | 'closed') => {
-  if (isServer) return;
-  
-  const db = await getFirestore();
-  if (!db) {
-    console.error("Firestore not initialized");
-    return;
-  }
-  
-  const functions = await loadFirestoreFunctions();
-  if (!functions.updateDoc || !functions.doc) {
-    console.error("Firestore functions not loaded");
-    return;
-  }
-  
-  try {
-    const postRef = functions.doc(db, "guest_posts", postId);
-    await functions.updateDoc(postRef, {
-      status,
-      updatedAt: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error("Error updating guest post status:", error);
-    throw error;
-  }
-};
-
 // ========== ガイド応募関連（ガイド→観光客の募集投稿） ==========
 
 export const sendGuideApplication = async (application: Omit<GuideApplication, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
@@ -828,38 +963,6 @@ export const cancelGuideApplication = async (applicationId: string) => {
   }
 };
 
-export const hasAlreadyApplied = async (guideId: string, postId: string): Promise<boolean> => {
-  if (isServer) return false;
-  
-  const db = await getFirestore();
-  if (!db) {
-    console.error("Firestore not initialized");
-    return false;
-  }
-  
-  const functions = await loadFirestoreFunctions();
-  if (!functions.query || !functions.collection || !functions.where || !functions.getDocs) {
-    console.error("Firestore functions not loaded");
-    return false;
-  }
-  
-  try {
-    const q = functions.query(
-      functions.collection(db, "guide_applications"),
-      functions.where("guideId", "==", guideId),
-      functions.where("postId", "==", postId),
-      functions.where("status", "in", ["pending", "accepted"])
-    );
-    
-    const querySnapshot = await functions.getDocs(q);
-    return !querySnapshot.empty;
-  } catch (error) {
-    console.error("Error checking if already applied:", error);
-    return false;
-  }
-};
-
-// ガイドが応募済みの投稿IDリストを取得
 export const getAppliedPostIds = async (guideId: string): Promise<string[]> => {
   if (isServer) return [];
   
@@ -887,88 +990,5 @@ export const getAppliedPostIds = async (guideId: string): Promise<string[]> => {
   } catch (error) {
     console.error("Error getting applied post IDs:", error);
     return [];
-  }
-};
-
-// ========== 後方互換性のための関数（非推奨） ==========
-
-export interface UserProfile {
-  language: string;
-  introduction: string;
-}
-
-export const saveUserProfile = async (uid: string, profile: UserProfile) => {
-  if (isServer) return;
-  
-  const db = await getFirestore();
-  if (!db) {
-    console.error("Firestore not initialized");
-    return;
-  }
-  
-  const functions = await loadFirestoreFunctions();
-  if (!functions.setDoc || !functions.doc) {
-    console.error("Firestore functions not loaded");
-    return;
-  }
-  
-  try {
-    await functions.setDoc(functions.doc(db, "users", uid), profile, { merge: true });
-  } catch (error) {
-    console.error("Error saving user profile:", error);
-    throw error;
-  }
-};
-
-// 言語と通知設定を同時に更新
-export const updateUserSettings = async (uid: string, settings: { language: 'ja' | 'en'; notifications: { email: boolean; push: boolean } }) => {
-  if (isServer) return;
-  
-  const db = await getFirestore();
-  if (!db) {
-    console.error("Firestore not initialized");
-    return;
-  }
-  
-  const functions = await loadFirestoreFunctions();
-  if (!functions.updateDoc || !functions.doc) {
-    console.error("Firestore functions not loaded");
-    return;
-  }
-  
-  try {
-    await functions.updateDoc(functions.doc(db, "users", uid), {
-      language: settings.language,
-      notifications: settings.notifications
-    });
-  } catch (error) {
-    console.error("Error updating user settings:", error);
-    throw error;
-  }
-};
-
-// アクティベーション状態を更新
-export const updateActivationStatus = async (uid: string, activated: boolean) => {
-  if (isServer) return;
-  
-  const db = await getFirestore();
-  if (!db) {
-    console.error("Firestore not initialized");
-    return;
-  }
-  
-  const functions = await loadFirestoreFunctions();
-  if (!functions.updateDoc || !functions.doc) {
-    console.error("Firestore functions not loaded");
-    return;
-  }
-  
-  try {
-    await functions.updateDoc(functions.doc(db, "users", uid), {
-      activated: activated
-    });
-  } catch (error) {
-    console.error("Error updating activation status:", error);
-    throw error;
   }
 };

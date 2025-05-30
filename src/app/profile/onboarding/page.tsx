@@ -19,7 +19,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   
   const [step, setStep] = useState<'role' | 'profile'>('role');
-  const [selectedRole, setSelectedRole] = useState<'guide' | 'guest' | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'guide' | 'guest' | 'admin' | null>(null); // admin追加
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -61,6 +61,13 @@ export default function OnboardingPage() {
     // userInfoが存在してロールが設定されている場合はプロフィール設定へ
     if (!loading && user && userInfo && userInfo.role && !userInfo.profileCompleted) {
       console.log('User has role:', userInfo.role, 'going to profile step');
+      
+      // 管理者の場合は管理画面へリダイレクト
+      if (userInfo.role === 'admin') {
+        router.replace('/admin');
+        return;
+      }
+      
       setSelectedRole(userInfo.role);
       setStep('profile');
       return;
@@ -198,6 +205,11 @@ export default function OnboardingPage() {
         </div>
       </div>
     );
+  }
+
+  // 管理者の場合はアクセス不可
+  if (userInfo?.role === 'admin') {
+    return null; // useEffectでリダイレクト済み
   }
 
   if (step === 'role') {
