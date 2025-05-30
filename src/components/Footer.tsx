@@ -7,7 +7,7 @@ import { useTranslation } from "@/contexts/TranslationContext";
 
 export default function Footer() {
   const { user, userInfo } = useAuthContext();
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const pathname = usePathname();
 
   // ログインページやサインアップページ、トップでは非表示

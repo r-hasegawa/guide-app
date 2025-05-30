@@ -10,7 +10,7 @@ import { auth } from "@/firebase/firebaseConfig";
 
 export default function Header() {
   const { user, userInfo, loading } = useAuthContext();
-  const { t } = useTranslation();
+  const { t, isJapanese } = useTranslation();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -20,7 +20,7 @@ export default function Header() {
   // 確認ダイアログ付きのログアウト処理
   const handleLogoutWithConfirmation = async () => {
     // 確認ダイアログを表示
-    const confirmMessage = t.isJapanese ? 'ログアウトしますか？' : 'Are you sure you want to logout?';
+    const confirmMessage = isJapanese ? 'ログアウトしますか？' : 'Are you sure you want to logout?';
     const confirmLogout = window.confirm(confirmMessage);
     
     if (!confirmLogout) {
@@ -39,7 +39,7 @@ export default function Header() {
       console.error('ログアウトエラー:', error);
       
       // エラーメッセージを表示（オプション）
-      const errorMessage = t.isJapanese 
+      const errorMessage = isJapanese 
         ? 'ログアウト中にエラーが発生しましたが、TOPページに移動します。'
         : 'An error occurred during logout, but you will be redirected to the top page.';
       alert(errorMessage);
@@ -61,7 +61,7 @@ export default function Header() {
     const roleIcon = userInfo.role === 'guide' ? '🎓' : '✈️';
     
     if (!userInfo.activated) {
-      const statusText = t.isJapanese ? `${role}(未認証)` : `${role} (Unverified)`;
+      const statusText = isJapanese ? `${role}(未認証)` : `${role} (Unverified)`;
       return { 
         icon: '⚠️', 
         text: statusText, 
@@ -71,7 +71,7 @@ export default function Header() {
     }
     
     if (!userInfo.profileCompleted) {
-      const statusText = t.isJapanese ? `${role}(設定中)` : `${role} (Setup)`;
+      const statusText = isJapanese ? `${role}(設定中)` : `${role} (Setup)`;
       return { 
         icon: '📝', 
         text: statusText, 
@@ -80,7 +80,7 @@ export default function Header() {
       };
     }
     
-    const statusText = t.isJapanese ? `${role}(準備完了)` : `${role} (Ready)`;
+    const statusText = isJapanese ? `${role}(準備完了)` : `${role} (Ready)`;
     return { 
       icon: roleIcon, 
       text: statusText, 
@@ -119,8 +119,8 @@ export default function Header() {
                   </span>
                   <span className={`text-xs ${userInfo.activated ? 'text-green-600' : 'text-red-600'}`}>
                     {userInfo.activated 
-                      ? (t.isJapanese ? '認証済み' : 'Verified')
-                      : (t.isJapanese ? '未認証' : 'Unverified')
+                      ? (isJapanese ? '認証済み' : 'Verified')
+                      : (isJapanese ? '未認証' : 'Unverified')
                     }
                   </span>
                 </div>
